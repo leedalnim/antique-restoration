@@ -2,3 +2,15 @@ node_modules/
 package-lock.json
 *.log
 _localtest.html
+# test/scratch artifacts
+*_test.js
+uvshot.js
+matshot.js
+peek.js
+peek_*.png
+hub_*.png
+jg_*.png
+tex6/SM_24SO0008_High.glb
+tex6/T_24SO0008_*.png
+f_gold_*.png
+f_jade_*.png

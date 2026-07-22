@@ -697,7 +697,7 @@ const ARTIFACTS=[
    blurb:'금알갱이를 촘촘히 붙이는 누금세공과 붉은 보석으로 화려하게 꾸민 신라의 금제 장신구. 정교한 세공이 황금의 나라 신라의 공예 수준을 보여줍니다.',
    assets:{glb:'art5.glb', c:'tex5/T_24CL0016_C.png', m:'tex5/T_24CL0016_R.png', n:'tex5/T_24CL0016_N.png', ao:'tex5/art5_ao.png'},
    fit:{h:2.2,y:0.04,rx:0}},
-  {id:'jade', playable:true, name:'경옥제 향로', era:'신라', material:'경옥(硬玉)', desig:'유물', source:SRC,
+  {id:'jade', playable:false, name:'경옥제 향로', era:'신라', material:'경옥(硬玉)', desig:'유물', source:SRC,
    blurb:'단단한 옥돌을 깎아 만든 향로. 둥근 몸통과 세 다리, 귀 손잡이, 보주형 꼭지를 갖춘 형태에 옥을 다루는 신라 장인의 솜씨가 담겼습니다.',
    assets:{glb:'art6.glb', c:'tex6/jade_C.png', m:'tex6/jade_M.png', r:'tex6/jade_R.png', n:'tex6/jade_N.png', ao:'tex6/art6_ao.png'},
    fit:{h:2.35,y:0.04,rx:0}},
@@ -735,7 +735,7 @@ function buildHub(){
       c.innerHTML='<div class="thumb">'+LOCK_SVG+'</div><div class="cap"><div class="nm">발굴 예정</div><div class="bd lock">준비 중</div></div>';
     }else if(!unl){
       c.className='acard locked';
-      c.innerHTML='<div class="thumb">'+LOCK_SVG+'</div><div class="cap"><div class="nm">'+a.name+'</div><div class="bd lock">이전 유물 복원 시 해금</div></div>';
+      c.innerHTML='<div class="thumb">'+LOCK_SVG+'</div><div class="cap"><div class="nm">'+a.name+'</div><div class="bd lock">잠김</div></div>';
     }else{
       c.className='acard';
       c.innerHTML='<div class="thumb">'+LOTUS_SVG+'</div><div class="cap"><div class="nm">'+a.name+'</div><div class="bd '+(done?'done':'wait')+'">'+(done?'복원 완료 ✓':'복원 대기')+'</div></div>';
