@@ -1,0 +1,31 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#15120c;overflow:hidden}</style></head><body>
+<script src="node_modules/three/build/three.min.js"></script>
+<script src="node_modules/three/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+const rx=parseFloat(new URLSearchParams(location.search).get('rx')||'-1.5708');
+const r=new THREE.WebGLRenderer({antialias:true});r.setSize(innerWidth,innerHeight);
+r.outputEncoding=THREE.sRGBEncoding;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.0;document.body.appendChild(r.domElement);
+const sc=new THREE.Scene();sc.background=new THREE.Color(0x15120c);
+const cam=new THREE.PerspectiveCamera(40,innerWidth/innerHeight,0.01,100);
+sc.add(new THREE.HemisphereLight(0xffe9c8,0x1c130a,0.5));
+const k=new THREE.DirectionalLight(0xfff1d6,2.4);k.position.set(2,3,3);sc.add(k);
+const rim=new THREE.DirectionalLight(0xffe0a0,1.0);rim.position.set(-2,1,-2);sc.add(rim);
+const pm=new THREE.PMREMGenerator(r);const cv=document.createElement('canvas');cv.width=cv.height=128;const g=cv.getContext('2d');
+const gr=g.createLinearGradient(0,0,0,128);gr.addColorStop(0,'#fff7e6');gr.addColorStop(.5,'#8c7048');gr.addColorStop(1,'#0a0705');
+g.fillStyle=gr;g.fillRect(0,0,128,128);const et=new THREE.CanvasTexture(cv);et.mapping=THREE.EquirectangularReflectionMapping;
+sc.environment=pm.fromEquirectangular(et).texture;
+window.__ready=false;
+const tl=new THREE.TextureLoader();
+const Tx=(u,s)=>{const t=tl.load(u);t.flipY=false;if(s)t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return t;};
+new THREE.GLTFLoader().load('art2.glb',gl=>{
+  const o=gl.scene; let mesh=null; o.traverse(x=>{if(x.isMesh&&!mesh)mesh=x;});
+  const C=Tx('tex2/art2_C.png',true),N=Tx('tex2/art2_N.png',false),G=Tx('tex2/art2_G.png',false);
+  mesh.material=new THREE.MeshStandardMaterial({map:C,normalMap:N,metalnessMap:G,roughnessMap:G,metalness:1,roughness:1,envMapIntensity:1.1,side:THREE.DoubleSide});
+  const grp=new THREE.Group(); o.rotation.x=rx; grp.add(o); sc.add(grp);
+  const box=new THREE.Box3().setFromObject(grp); const size=box.getSize(new THREE.Vector3()),ctr=box.getCenter(new THREE.Vector3());
+  o.position.sub(ctr);
+  const maxd=Math.max(size.x,size.y,size.z); cam.position.set(0,0,maxd*1.9); cam.lookAt(0,0,0);
+  window.__ready=true;
+},undefined,e=>{document.title='ERR';});
+(function loop(){requestAnimationFrame(loop);r.render(sc,cam);})();
+</script></body></html>
