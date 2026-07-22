@@ -28,9 +28,9 @@ canvas{display:block;cursor:grab}
   display:flex;align-items:center;gap:10px;pointer-events:none;z-index:5}
 #title{display:flex;flex-direction:column;text-shadow:0 2px 4px rgba(0,0,0,.8);pointer-events:none}
 #title h1{font-family:'MaruBuri',serif;font-weight:800;font-size:15px;letter-spacing:.06em;color:var(--brass-bright);white-space:nowrap}
-#title span{font-size:8.5px;letter-spacing:.2em;color:#cfb98c}
+#title span{font-size:8.5px;letter-spacing:.2em;color:#cfb98c;white-space:nowrap}
 #spacer{flex:1}
-#selBtn{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:5px;
+#selBtn{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:5px;white-space:nowrap;
   border:2px solid var(--parch-line);background:var(--parch);color:var(--parch-text);
   font-size:13.5px;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.55);pointer-events:auto}
 #selBtn .em{font-size:17px}
@@ -43,11 +43,11 @@ canvas{display:block;cursor:grab}
   display:flex;flex-direction:column;gap:8px;pointer-events:none}
 #bar2{display:flex;align-items:stretch;gap:8px;pointer-events:auto}
 #modes{display:flex;border-radius:6px;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,.55);border:2px solid var(--parch-line)}
-.mode{padding:0 16px;font-size:14px;font-weight:700;color:var(--parch-text);background:var(--parch);
+.mode{padding:0 16px;font-size:14px;font-weight:700;color:var(--parch-text);background:var(--parch);white-space:nowrap;
   cursor:pointer;display:flex;align-items:center;gap:5px;border-right:1px solid rgba(107,78,34,.45);min-height:52px}
 .mode:last-child{border-right:0}
 .mode.on{background:linear-gradient(180deg,var(--gold-a),var(--gold-b));color:#1d1204}
-#toolBtn{display:none;align-items:center;gap:8px;padding:0 14px;border-radius:6px;
+#toolBtn{display:none;align-items:center;gap:8px;padding:0 14px;border-radius:6px;white-space:nowrap;
   border:2px solid var(--parch-line);background:var(--parch);color:var(--parch-text);
   font-size:14px;font-weight:700;cursor:pointer;min-height:52px;box-shadow:0 3px 10px rgba(0,0,0,.55)}
 #toolBtn.show{display:flex}
@@ -145,12 +145,13 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
 .scr-btn{padding:9px 14px;border-radius:6px;border:2px solid var(--parch-line);background:var(--parch);
   color:var(--parch-text);font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.5)}
 .scr-note{text-align:center;color:#b39b6e;font-size:12px;padding:8px 0 calc(16px + env(safe-area-inset-bottom))}
-.hub-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;padding:8px 16px;align-content:start;max-width:820px;width:100%;margin:0 auto}
+.hub-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));grid-auto-rows:min-content;gap:14px;padding:8px 16px;align-content:start;align-items:start;max-width:820px;width:100%;margin:0 auto}
 .acard{border-radius:12px;border:2px solid var(--parch-line);overflow:hidden;background:rgba(20,14,8,.6);
   box-shadow:0 6px 18px rgba(0,0,0,.5);cursor:pointer;display:flex;flex-direction:column;transition:transform .12s}
 .acard:active{transform:scale(.97)}
 .acard.locked{cursor:default;opacity:.5;filter:grayscale(.55)}
-.acard .thumb{aspect-ratio:1/1;max-height:190px;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 120% at 50% 28%,#4a3819,#211708)}
+.acard .thumb{height:clamp(82px,22vw,120px);flex:none;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 120% at 50% 28%,#4a3819,#211708)}
+.acard .cap{flex:none}
 .acard .thumb svg{width:54px;height:54px;color:#e3c377}
 .acard .thumb img{width:100%;height:100%;object-fit:cover}
 .acard .cap{padding:9px 10px 11px;text-align:center}
@@ -186,6 +187,19 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
 #backHub{pointer-events:auto;width:38px;height:38px;border-radius:50%;border:2px solid var(--parch-line);
   background:var(--parch);color:var(--parch-text);font-size:24px;font-weight:800;line-height:1;cursor:pointer;
   display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.5);flex:none}
+/* ===== 모바일 좁은 화면 대응 ===== */
+@media (max-width:520px){
+  #title h1{font-size:13px}
+  #title span{display:none}                    /* 부제 숨김 → 도움말 버튼과 겹침 방지 */
+  #selBtn{font-size:12px;padding:8px 10px;gap:6px;max-width:46vw}
+  #selBtn .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  #helpBtn{top:calc(52px + env(safe-area-inset-top));width:32px;height:32px;font-size:15px}
+  .mode{padding:0 13px;font-size:13px;min-height:48px}
+  #toolBtn{padding:0 11px;font-size:13px;min-height:48px}
+  #plaque{min-width:74px;padding:5px 9px}
+  #plaque .pct{font-size:15px}
+  .sbtn{width:42px;height:42px;font-size:20px}
+}
 </style>
 </head>
 <body>
@@ -371,6 +385,7 @@ stage.appendChild(renderer.domElement);
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(46,innerWidth/innerHeight,0.05,60);
 const camTarget=new THREE.Vector3(0,0.15,0);
+const camTargetGoal=new THREE.Vector3(0,0.15,0);   // 더블탭 포커스 목표(부드럽게 이동)
 let camR=3.5, camTheta=0.5, camPhi=1.12, camRTarget=camR;
 function placeCamera(){
   camera.position.set(
@@ -615,7 +630,8 @@ function applyMaterial(mesh,target,assets){
          metalnessFactor = mix(metalnessFactor, 0.0, amtG);`)
       .replace('#include <dithering_fragment>',
         `#include <dithering_fragment>
-         gl_FragColor.rgb += uHeat * amtG * vec3(0.55,0.06,0.03);`);
+         float _hl = uHeat * smoothstep(0.03,0.20,amtG);
+         gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(1.0,0.24,0.06), _hl);`);
   };
   const kk=++_matKey; mat.customProgramCacheKey=()=>'dirt'+kk;
   mesh.material=mat;
@@ -665,11 +681,11 @@ const TOOLS={
 };
 const isTouch=('ontouchstart' in window)&&navigator.maxTouchPoints>0;
 const HINTS=isTouch?{
-  rotate:'드래그로 <b>회전</b> · 두 손가락 <b>확대</b> · 우측 버튼으로 <b>확대·축소·되돌리기</b>',
-  clean:'유물을 <b>문지르면</b> 녹·때가 벗겨집니다 · 빈 곳 드래그로 회전',
+  rotate:'드래그로 <b>회전</b> · 두 손가락 <b>확대</b> · <b>두 번 탭</b>하면 그 부분 확대·가운데 · 🔍로 남은 때 표시',
+  clean:'유물을 <b>문지르면</b> 녹·때가 벗겨집니다 · <b>두 번 탭</b>으로 그 부분 확대 · 빈 곳 드래그로 회전',
 }:{
-  rotate:'좌드래그로 <b>회전</b> · <b>휠</b> 확대축소 · 우측 버튼으로 <b>확대·축소·되돌리기</b>',
-  clean:'유물 위를 <b>문질러</b> 세척 · <b>빈 곳/우클릭 드래그</b>로 회전',
+  rotate:'좌드래그로 <b>회전</b> · <b>휠</b> 확대축소 · <b>더블클릭</b>으로 그 부분 확대·가운데 · 🔍로 남은 때 표시',
+  clean:'유물 위를 <b>문질러</b> 세척 · <b>더블클릭</b>으로 그 부분 확대 · <b>빈 곳/우클릭 드래그</b>로 회전',
 };
 function setHint(){ $('#hint').innerHTML=HINTS[mode]; showHint(); }
 let hintTimer=0;
@@ -706,7 +722,7 @@ $('#zoomIn').onclick=()=>{camRTarget=Math.max(1.8,camRTarget-0.55);};
 $('#zoomOut').onclick=()=>{camRTarget=Math.min(6.5,camRTarget+0.55);};
 let heat=false;
 $('#heatBtn').onclick=()=>{ heat=!heat; $('#heatBtn').classList.toggle('on',heat); toast(heat?'남은 오염 표시 켜짐':'오염 표시 꺼짐'); };
-$('#resetBtn').onclick=()=>{ Snd.stopClean(); camTheta=0.5;camPhi=1.12;camRTarget=3.5; toast('제자리로 되돌렸습니다'); };
+$('#resetBtn').onclick=()=>{ Snd.stopClean(); camTheta=0.5;camPhi=1.12;camRTarget=3.5; camTargetGoal.set(0,0.15,0); toast('제자리로 되돌렸습니다'); };
 
 /* ===== 화면 전환 / 유물 컬렉션 ===== */
 const LOCK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>';
@@ -1114,10 +1130,22 @@ el.addEventListener('pointermove',e=>{
     camTheta-=dx*0.0065; camPhi=Math.max(0.04,Math.min(Math.PI-0.04,camPhi-dy*0.005)); }
   if(tapInfo&&Math.hypot(e.clientX-tapInfo.x,e.clientY-tapInfo.y)>10)tapInfo=null;
 });
+let lastTapT=0,lastTapX=0,lastTapY=0;
+function focusAt(e){                                 // 더블탭한 지점을 확대·가운데 정렬
+  const hits=raycastAt(e); if(!hits.length||!hits[0].point) return;
+  camTargetGoal.copy(hits[0].point);
+  camRTarget=Math.max(1.7, Math.min(camR, camR*0.6));
+  toast('확대 · 가운데 정렬 (다시 두 번 탭하면 더 확대)');
+}
 function endPointer(e){
   pointers.delete(e.pointerId); pinchD=0;lastHit=null;dragKind=null;
   if(pointers.size===0)Snd.stopClean();
   if(e.pointerType!=='mouse'){toolCursor.visible=false;cursorRing.visible=false;lastCleanHit=null;}
+  if(tapInfo){                                       // 움직임 없는 탭 → 더블탭 판정
+    const now=performance.now();
+    if(now-lastTapT<330 && Math.hypot(e.clientX-lastTapX,e.clientY-lastTapY)<34){ focusAt(e); lastTapT=0; }
+    else { lastTapT=now; lastTapX=e.clientX; lastTapY=e.clientY; }
+  }
   tapInfo=null;
 }
 el.addEventListener('pointerup',endPointer);
@@ -1165,6 +1193,7 @@ function animate(){
   }
   updateBursts(dt); updateJet(dt);
   camR+=(camRTarget-camR)*Math.min(1,dt*8);
+  camTarget.lerp(camTargetGoal, Math.min(1,dt*6));
   placeCamera();
   if(composer)composer.render(); else renderer.render(scene,camera);
 }
