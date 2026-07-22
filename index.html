@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>금동미륵보살반가사유상 복원</title>
+<title>골동품 복원 공방 · 천년 신라 유물 보존처리실</title>
 <style>
 @font-face{font-family:'JeonjuWanpanbon';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2102-01@1.0/Jeonju_gakL.woff') format('woff');font-weight:300;font-display:swap}
 @font-face{font-family:'JeonjuWanpanbon';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2102-01@1.0/Jeonju_gakR.woff') format('woff');font-weight:normal;font-display:swap}
 @font-face{font-family:'JeonjuWanpanbon';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2102-01@1.0/Jeonju_gakB.woff') format('woff');font-weight:700;font-display:swap}
+@font-face{font-family:'JeongnimsaJi';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_231029@1.1/Jeongnimsaji-R.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'JeongnimsaJi';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_231029@1.1/Jeongnimsaji-B.woff2') format('woff2');font-weight:700;font-display:swap}
 :root{
   --ink:#0f0b07;
   --parch:#ece0bf; --parch-line:#7a5a28; --parch-text:#38240e;
@@ -17,14 +19,14 @@
 button{appearance:none;-webkit-appearance:none;font:inherit}
 html,body{position:fixed;inset:0;width:100%;height:100%;overflow:hidden;
   overscroll-behavior:none;touch-action:none;background:var(--ink)}
-body{font-family:'JeonjuWanpanbon',serif;color:var(--paper);
+body{font-family:'JeongnimsaJi',serif;color:var(--paper);
   background:radial-gradient(120% 90% at 50% 18%, #2c2013 0%, #17110a 52%, #0a0704 100%)}
 #stage{position:fixed;inset:0;touch-action:none}
 canvas{display:block;cursor:grab}
 #top{position:fixed;top:0;left:0;right:0;padding:calc(9px + env(safe-area-inset-top)) 12px 0;
   display:flex;align-items:center;gap:10px;pointer-events:none;z-index:5}
 #title{display:flex;flex-direction:column;text-shadow:0 2px 4px rgba(0,0,0,.8);pointer-events:none}
-#title h1{font-family:'JeonjuWanpanbon',serif;font-weight:800;font-size:15px;letter-spacing:.06em;color:var(--brass-bright);white-space:nowrap}
+#title h1{font-family:'JeongnimsaJi',serif;font-weight:800;font-size:15px;letter-spacing:.06em;color:var(--brass-bright);white-space:nowrap}
 #title span{font-size:8.5px;letter-spacing:.2em;color:#cfb98c}
 #spacer{flex:1}
 #selBtn{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:5px;
@@ -55,7 +57,7 @@ canvas{display:block;cursor:grab}
   min-width:96px;display:flex;flex-direction:column;justify-content:center}
 #plaque .row{display:flex;justify-content:space-between;align-items:baseline}
 #plaque .label{font-size:9.5px;letter-spacing:.14em;color:#e2cd9c;font-weight:700}
-#plaque .pct{font-family:'JeonjuWanpanbon',serif;font-weight:800;font-size:16px;color:var(--brass-bright)}
+#plaque .pct{font-family:'JeongnimsaJi',serif;font-weight:800;font-size:16px;color:var(--brass-bright)}
 #bar{margin-top:4px;height:6px;border-radius:3px;background:rgba(0,0,0,.6);overflow:hidden;border:1px solid rgba(222,182,98,.35)}
 #fill{height:100%;width:0%;background:linear-gradient(90deg,#9a7530,#f2d492);transition:width .35s}
 #toolPop{position:fixed;left:10px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:6;
@@ -122,7 +124,7 @@ canvas{display:block;cursor:grab}
 #intro .start{margin-top:32px;padding:14px 44px;border-radius:8px;border:2px solid #fff3d4;
   background:linear-gradient(180deg,var(--gold-a),var(--gold-b));color:#241704;font-size:16px;font-weight:800;
   letter-spacing:.08em;cursor:pointer;box-shadow:0 10px 28px rgba(0,0,0,.55);transition:transform .12s,opacity .3s;
-  font-family:'JeonjuWanpanbon',serif}
+  font-family:'JeongnimsaJi',serif}
 #intro .start:active{transform:scale(.96)}
 #intro .start[disabled]{opacity:.5;cursor:default;filter:grayscale(.5)}
 #intro .cred{margin-top:28px;font-size:10px;letter-spacing:.05em;color:#8f784f}
@@ -175,7 +177,7 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
 .finish-card .fin-src{margin-top:12px;font-size:10px;color:#6b5330}
 .finish-card .fin-btns{display:flex;gap:10px;margin-top:20px}
 .finish-card .fin-btns button{flex:1;padding:12px 0;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;
-  border:2px solid #b98f38;background:#eadcb6;color:#3a2508;font-family:'JeonjuWanpanbon',serif}
+  border:2px solid #b98f38;background:#eadcb6;color:#3a2508;font-family:'JeongnimsaJi',serif}
 .finish-card .fin-btns button.primary{background:linear-gradient(180deg,var(--gold-a),var(--gold-b));border-color:#fff3d4}
 #backHub{pointer-events:auto;width:38px;height:38px;border-radius:50%;border:2px solid var(--parch-line);
   background:var(--parch);color:var(--parch-text);font-size:24px;font-weight:800;line-height:1;cursor:pointer;
@@ -264,9 +266,8 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
 <div id="intro" class="screen show">
   <div class="eyebrow">ATELIER DE RESTAURATION</div>
   <h1>골동품 복원 공방</h1>
-  <div class="sub">유물 보존처리실</div>
-  <div class="relic">금동미륵보살반가사유상 · 국보</div>
-  <div class="premise">천오백 년 동안 쌓인 흙과 녹을 도구로 벗겨내<br>본래의 금빛을 되찾아 주세요.</div>
+  <div class="sub">천년 신라 · 유물 보존처리실</div>
+  <div class="premise">경주에 잠든 천년 신라의 유물,<br>세월의 때를 벗겨 본래의 빛을 되찾아 주세요.</div>
   <button class="start" id="startBtn" disabled>준비 중&hellip;</button>
   <div class="cred">3D 데이터: 국가유산청 · 공공누리 제1유형(출처표시)</div>
 </div>
@@ -670,8 +671,8 @@ $('#resetBtn').onclick=()=>{ Snd.stopClean(); camTheta=0.5;camPhi=1.12;camRTarge
 const LOCK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>';
 const LOTUS_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20c-4.4 0-8-2.8-8-6.5 2.2 0 4 1.2 4.6 2.6C8.1 12 9.3 9.4 12 7c2.7 2.4 3.9 5 3.4 9 .6-1.4 2.4-2.6 4.6-2.6 0 3.7-3.6 6.5-8 6.5z"/><path d="M12 20c-1.9 0-3.4-2.6-3.4-5.7 0-2.1 1.4-4.5 3.4-6.3 2 1.8 3.4 4.2 3.4 6.3C15.4 17.4 13.9 20 12 20z"/></svg>';
 const ARTIFACTS=[
-  {id:'bapga', playable:true, name:'금동미륵보살반가사유상', era:'삼국시대', material:'금동', desig:'국보', source:'국가유산청 3D · 공공누리 제1유형',
-   blurb:'한쪽 다리를 다른 무릎에 얹고 오른손 끝을 뺨에 가만히 댄 반가부좌. 깊은 사유에 잠긴 잔잔한 미소와 유려한 옷주름이 삼국시대 금동불 조각의 정수를 보여줍니다.'},
+  {id:'bapga', playable:true, name:'금동미륵보살반가사유상', era:'신라', material:'금동', desig:'국보', source:'국가유산청 · 천년 신라 왕경 3D(공공누리 1유형)',
+   blurb:'한쪽 다리를 다른 무릎에 얹고 오른손 끝을 뺨에 가만히 댄 반가부좌. 깊은 사유에 잠긴 잔잔한 미소와 유려한 옷주름이 신라 불교 조각의 정수를 보여줍니다.'},
   {id:'lock1', locked:true},{id:'lock2', locked:true},{id:'lock3', locked:true},
 ];
 const restored={};
@@ -717,6 +718,7 @@ function startGame(id){
   camTheta=0.5; camPhi=1.12; camRTarget=3.5; camR=3.5;
   mode='rotate'; $$('.mode').forEach(x=>x.classList.toggle('on',x.dataset.mode==='rotate'));
   $('#toolBtn').classList.remove('show'); closeToolPop();
+  $('#selBtn .nm').textContent=A(id).name;
   $('#selBtn').classList.remove('complete');
   updateProgressUI();
 }
