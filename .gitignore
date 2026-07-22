@@ -16,3 +16,13 @@ f_gold_*.png
 f_jade_*.png
 gate_*
 gen_posmap.py.bak
+clean_*.js
+clean_*.png
+verify_*.js
+verify_*.png
+hit_diag.js
+load5.js
+save_test.js
+reach_test.js
+gate_cmp.js
+gate_visual.js
