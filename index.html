@@ -16,11 +16,7 @@
 <script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 <style>
 @font-face{font-family:'ChusaLove';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2205@1.0/ChusaLove.woff2') format('woff2');font-weight:400;font-display:swap}
-@font-face{font-family:'MaruBuri';src:url('https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-ExtraLight.woff2');font-weight:200;font-display:swap}
-@font-face{font-family:'MaruBuri';src:url('https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Light.woff2');font-weight:300;font-display:swap}
-@font-face{font-family:'MaruBuri';src:url('https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Regular.woff2');font-weight:400;font-display:swap}
-@font-face{font-family:'MaruBuri';src:url('https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-SemiBold.woff2');font-weight:600;font-display:swap}
-@font-face{font-family:'MaruBuri';src:url('https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Bold.woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'MapoGeumbitnaru';src:url('https://gcore.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/MapoGoldenPierA.woff') format('woff');font-weight:normal;font-display:swap}
 :root{
   --ink:#0f0b07;
   --parch:#ece0bf; --parch-line:#7a5a28; --parch-text:#38240e;
@@ -30,14 +26,14 @@
 button{appearance:none;-webkit-appearance:none;font:inherit}
 html,body{position:fixed;inset:0;width:100%;height:100%;overflow:hidden;
   overscroll-behavior:none;touch-action:none;background:var(--ink)}
-body{font-family:'MaruBuri',serif;color:var(--paper);
+body{font-family:'MapoGeumbitnaru',serif;color:var(--paper);
   background:radial-gradient(120% 90% at 50% 18%, #2c2013 0%, #17110a 52%, #0a0704 100%)}
 #stage{position:fixed;inset:0;touch-action:none}
 canvas{display:block;cursor:grab}
 #top{position:fixed;top:0;left:0;right:0;padding:calc(9px + env(safe-area-inset-top)) 12px 0;
   display:flex;align-items:center;gap:10px;pointer-events:none;z-index:5}
 #title{display:flex;flex-direction:column;text-shadow:0 2px 4px rgba(0,0,0,.8);pointer-events:none}
-#title h1{font-family:'MaruBuri',serif;font-weight:800;font-size:15px;letter-spacing:.06em;color:var(--brass-bright);white-space:nowrap}
+#title h1{font-family:'MapoGeumbitnaru',serif;font-weight:800;font-size:15px;letter-spacing:.06em;color:var(--brass-bright);white-space:nowrap}
 #title span{font-size:8.5px;letter-spacing:.2em;color:#cfb98c;white-space:nowrap}
 #spacer{flex:1}
 #selBtn{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:5px;white-space:nowrap;
@@ -68,7 +64,7 @@ canvas{display:block;cursor:grab}
   min-width:96px;display:flex;flex-direction:column;justify-content:center}
 #plaque .row{display:flex;justify-content:space-between;align-items:baseline}
 #plaque .label{font-size:9.5px;letter-spacing:.14em;color:#e2cd9c;font-weight:700}
-#plaque .pct{font-family:'MaruBuri',serif;font-weight:800;font-size:16px;color:var(--brass-bright)}
+#plaque .pct{font-family:'MapoGeumbitnaru',serif;font-weight:800;font-size:16px;color:var(--brass-bright)}
 #bar{margin-top:4px;height:6px;border-radius:3px;background:rgba(0,0,0,.6);overflow:hidden;border:1px solid rgba(222,182,98,.35)}
 #fill{height:100%;width:0%;background:linear-gradient(90deg,#9a7530,#f2d492);transition:width .35s}
 #toolPop{position:fixed;left:10px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:6;
@@ -106,7 +102,7 @@ canvas{display:block;cursor:grab}
   border:1.5px solid rgba(222,182,98,.42);border-radius:16px;padding:26px 24px 22px;
   box-shadow:0 16px 48px rgba(0,0,0,.62);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;color:#f0e4c8}
 #helpPanel.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
-#helpPanel h3{font-family:'MaruBuri',serif;color:var(--brass-bright);font-size:19px;margin:0 0 16px;font-weight:800;letter-spacing:.04em}
+#helpPanel h3{font-family:'MapoGeumbitnaru',serif;color:var(--brass-bright);font-size:19px;margin:0 0 16px;font-weight:800;letter-spacing:.04em}
 #helpBody{font-size:15px;line-height:2.05}
 #helpBody .k{color:var(--brass-bright);font-weight:800}
 #helpClose{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;
@@ -135,7 +131,7 @@ canvas{display:block;cursor:grab}
 #doneCard .card{background:linear-gradient(180deg,#f4e6c0,#cfa95e);color:#241704;border:2px solid #fff3d4;
   border-radius:5px;padding:22px 36px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.65);
   animation:pop .55s cubic-bezier(.2,1.4,.4,1)}
-#doneCard h2{font-family:'MaruBuri',serif;font-weight:800;font-size:22px;letter-spacing:.1em}
+#doneCard h2{font-family:'MapoGeumbitnaru',serif;font-weight:800;font-size:22px;letter-spacing:.1em}
 #doneCard p{margin-top:6px;font-size:13px}
 @keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
 #credit{position:fixed;left:10px;bottom:calc(74px + env(safe-area-inset-bottom));z-index:4;
@@ -148,7 +144,7 @@ canvas{display:block;cursor:grab}
   background:radial-gradient(120% 92% at 50% 40%, rgba(24,17,9,.5) 0%, rgba(12,8,4,.85) 58%, rgba(5,3,1,.96) 100%)}
 #intro.hide{opacity:0;pointer-events:none}
 #intro .eyebrow{font-size:10.5px;letter-spacing:.34em;color:#c9a45c;margin-bottom:16px}
-#intro h1{font-family:'ChusaLove','MaruBuri',serif;font-weight:400;font-size:40px;letter-spacing:.04em;
+#intro h1{font-family:'ChusaLove','MapoGeumbitnaru',serif;font-weight:400;font-size:40px;letter-spacing:.04em;
   color:var(--brass-bright);text-shadow:0 3px 14px rgba(0,0,0,.85)}
 #intro .sub{font-size:12px;letter-spacing:.26em;color:#cfb98c;margin-top:8px}
 #intro .relic{margin-top:24px;font-size:14px;color:#efdcac;font-weight:700;
@@ -157,7 +153,7 @@ canvas{display:block;cursor:grab}
 #intro .start{margin-top:32px;padding:14px 44px;border-radius:8px;border:2px solid #fff3d4;
   background:linear-gradient(180deg,var(--gold-a),var(--gold-b));color:#241704;font-size:16px;font-weight:800;
   letter-spacing:.08em;cursor:pointer;box-shadow:0 10px 28px rgba(0,0,0,.55);transition:transform .12s,opacity .3s;
-  font-family:'MaruBuri',serif}
+  font-family:'MapoGeumbitnaru',serif}
 #intro .start:active{transform:scale(.96)}
 #intro .start[disabled]{opacity:.5;cursor:default;filter:grayscale(.5)}
 #intro .cred{position:absolute;left:16px;right:16px;bottom:calc(12px + env(safe-area-inset-bottom));
@@ -172,7 +168,7 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
   background:radial-gradient(120% 92% at 50% 38%, rgba(24,17,9,.66) 0%, rgba(12,8,4,.9) 58%, rgba(5,3,1,.97) 100%)}
 .screen.show{opacity:1;pointer-events:auto}
 .scr-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(16px + env(safe-area-inset-top)) 16px 10px}
-.scr-title{font-family:'MaruBuri',serif;font-weight:800;font-size:20px;color:var(--brass-bright);letter-spacing:.14em}
+.scr-title{font-family:'MapoGeumbitnaru',serif;font-weight:800;font-size:20px;color:var(--brass-bright);letter-spacing:.14em}
 .scr-title span{display:block;font-size:9px;letter-spacing:.3em;color:#9a8256;font-weight:400;margin-top:2px}
 .scr-btn{padding:9px 14px;border-radius:6px;border:2px solid var(--parch-line);background:var(--parch);
   color:var(--parch-text);font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.5)}
@@ -207,14 +203,14 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
   border:2px solid #fff3d4;border-radius:14px;padding:26px 26px 22px;text-align:center;
   box-shadow:0 20px 60px rgba(0,0,0,.6);animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
 .finish-card .fin-em{font-size:22px;color:#9a7530}
-.finish-card h2{font-family:'MaruBuri',serif;font-weight:800;font-size:22px;letter-spacing:.14em;margin-top:2px}
+.finish-card h2{font-family:'MapoGeumbitnaru',serif;font-weight:800;font-size:22px;letter-spacing:.14em;margin-top:2px}
 .finish-card .fin-name{margin-top:14px;font-size:16px;font-weight:800;color:#3a2508}
 .finish-card .fin-meta{margin-top:6px;font-size:11.5px;color:#6b5330;font-weight:700;letter-spacing:.03em}
 .finish-card .fin-blurb{margin-top:12px;font-size:12px;line-height:1.65;color:#4d3a1c;text-align:left}
 .finish-card .fin-src{margin-top:12px;font-size:10px;color:#6b5330}
 .finish-card .fin-btns{display:flex;gap:10px;margin-top:20px}
 .finish-card .fin-btns button{flex:1;padding:12px 0;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;
-  border:2px solid #b98f38;background:#eadcb6;color:#3a2508;font-family:'MaruBuri',serif}
+  border:2px solid #b98f38;background:#eadcb6;color:#3a2508;font-family:'MapoGeumbitnaru',serif}
 .finish-card .fin-btns button.primary{background:linear-gradient(180deg,var(--gold-a),var(--gold-b));border-color:#fff3d4}
 #backHub{pointer-events:auto;width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(222,182,98,.32);
   background:rgba(22,16,8,.46);-webkit-backdrop-filter:blur(10px) saturate(1.1);backdrop-filter:blur(10px) saturate(1.1);
@@ -927,11 +923,20 @@ function disposeOthers(keepId){
     delete targets[id];
   }
 }
+/* 인트로 배경에 세울 대표 유물: 지금 복원할 차례(잠금해제·미완료) → 없으면 마지막 복원 유물 → 기본 bapga */
+function featuredId(){
+  const ps=ARTIFACTS.filter(a=>a.playable);
+  const next=ps.find(a=>unlocked[a.id]&&!restored[a.id]);
+  if(next) return next.id;
+  const lastDone=[...ps].reverse().find(a=>restored[a.id]);
+  return lastDone?lastDone.id:(ps[0]?ps[0].id:'bapga');
+}
 /* 첫 유물만 로드(나머지는 선택 시 온디맨드 로드 → 메모리 절약) */
-loadArtifact('bapga', (t)=>{
+const _featId=featuredId();
+loadArtifact(_featId, (t)=>{
   const sb=$('#startBtn');
   if(!t){ if(sb) sb.innerHTML='로드 실패 — 새로고침'; return; }
-  active=t; curArtifact='bapga'; t.group.visible=true;
+  active=t; curArtifact=_featId; t.group.visible=true;
   updateProgressUI();
   if(sb){ sb.disabled=false; sb.innerHTML='입 장'; }
 });
