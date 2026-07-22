@@ -1,0 +1,23 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#1a1510;overflow:hidden}</style></head><body>
+<script src="node_modules/three/build/three.min.js"></script>
+<script src="node_modules/three/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+const r=new THREE.WebGLRenderer({antialias:true});r.setSize(innerWidth,innerHeight);
+r.outputEncoding=THREE.sRGBEncoding;r.toneMapping=THREE.ACESFilmicToneMapping;document.body.appendChild(r.domElement);
+const sc=new THREE.Scene();sc.background=new THREE.Color(0x1a1510);
+const cam=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,0.01,50);cam.position.set(0.35,0.1,1.1);cam.lookAt(0,0.05,0);
+sc.add(new THREE.HemisphereLight(0xfff2d8,0x201810,0.8));
+const k=new THREE.DirectionalLight(0xffffff,2.2);k.position.set(2,3,2.5);sc.add(k);
+const rim=new THREE.DirectionalLight(0xffe0a0,0.9);rim.position.set(-2,1,-2);sc.add(rim);
+const pm=new THREE.PMREMGenerator(r);const cv=document.createElement('canvas');cv.width=cv.height=128;const g=cv.getContext('2d');
+const gr=g.createLinearGradient(0,0,0,128);gr.addColorStop(0,'#fff7e6');gr.addColorStop(.5,'#8c7048');gr.addColorStop(1,'#0a0705');
+g.fillStyle=gr;g.fillRect(0,0,128,128);const et=new THREE.CanvasTexture(cv);et.mapping=THREE.EquirectangularReflectionMapping;
+sc.environment=pm.fromEquirectangular(et).texture;
+new THREE.GLTFLoader().load('tools.glb',gl=>{
+  const root=gl.scene;const wrap=new THREE.Group();
+  ['brush','brush_bristle'].forEach(n=>{const o=root.getObjectByName(n);if(o){if(o.parent)o.parent.remove(o);o.position.set(0,0,0);o.rotation.set(0,0,0);wrap.add(o);}});
+  wrap.rotation.y=-Math.PI/2;wrap.rotation.z=0.15;wrap.position.set(-0.35,0.0,0);wrap.scale.setScalar(1.6);
+  sc.add(wrap);window.__ready=true;
+});
+(function loop(){requestAnimationFrame(loop);r.render(sc,cam);})();
+</script></body></html>

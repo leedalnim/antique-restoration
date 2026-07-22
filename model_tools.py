@@ -58,23 +58,26 @@ paper  = mat('paper',(0.93,0.90,0.82),0.0,0.7)
 cotton = mat('cotton',(0.97,0.97,0.95),0.0,0.9)
 steel  = mat('steel',(0.7,0.72,0.75),1.0,0.3)
 
-def build_brush():
+def build_bristle():
+    """별도 노드 'brush_bristle' — 촘촘하고 가는 강모 다발(게임에서 애니메이션)."""
     parts=[]
-    # 깔끔한 솔 뭉치: 몸통 원기둥 + 둥근 끝(돔). 가지런한 세로홈으로 강모 암시.
-    body=cone(0.07,0.062,0.03,0.17,seg=48,m=bristle); parts.append(body)
-    cap=uvsphere(0.07,0.03,m=bristle,scale=(1,1,0.55)); parts.append(cap)  # 둥근 끝(팁)
-    # 가지런한 강모 다발(짧고 균일, 2겹) — 지저분하지 않게
-    for ri,(rr,cnt) in enumerate([(0.052,20),(0.066,28)]):
+    core=cone(0.05,0.028,0.03,0.17,seg=44,m=bristle); parts.append(core)       # 속 채움(빈틈 방지)
+    cap=uvsphere(0.05,0.03,m=bristle,scale=(1,1,0.5)); parts.append(cap)        # 둥근 끝
+    for rr,cnt in [(0.020,9),(0.034,15),(0.048,22),(0.060,28),(0.070,32)]:
         for i in range(cnt):
-            a=(i/cnt)*2*math.pi + ri*0.14
-            b=cone(0.0055,0.003,0.02,0.165,seg=6,m=bristle)
+            a=(i/cnt)*2*math.pi + rr*11
+            z0=0.018+random.uniform(0,0.016)                                    # 팁 살짝 프레이
+            b=cone(0.0036,0.0014,z0,0.176,seg=5,m=bristle)
             b.location=(math.cos(a)*rr, math.sin(a)*rr, 0)
             parts.append(b)
-    # 놋쇠 페룰(테)
+    return join(parts,'brush_bristle')
+
+def build_brush():
+    """'brush' = 놋쇠 페룰 + 나무 손잡이(정적 부분)."""
+    parts=[]
     fer=cone(0.085,0.075,0.15,0.30,seg=40,m=brass); subsurf(fer,1); parts.append(fer)
     ring=cone(0.088,0.088,0.19,0.205,seg=40,m=brass); parts.append(ring)
     ring2=cone(0.088,0.088,0.25,0.265,seg=40,m=brass); parts.append(ring2)
-    # 나무 손잡이(선반가공 느낌) — lathe 프로파일
     prof=[(0.0,0.30),(0.05,0.31),(0.058,0.40),(0.046,0.58),(0.04,0.78),(0.052,0.95),(0.036,1.05),(0.0,1.08)]
     verts=[(x,0,z) for x,z in prof]
     me=bpy.data.meshes.new('handleP')
@@ -126,9 +129,10 @@ def orient_export():
 def main():
     clear()
     b=build_brush()
+    br=build_bristle()
     w=build_blow()
     s=build_swab()
-    for o in (b,w,s):
+    for o in (b,br,w,s):
         print(f"  {o.name}: verts={len(o.data.vertices)} polys={len(o.data.polygons)} mats={len(o.data.materials)}")
     orient_export()
     print("DONE tools.glb")

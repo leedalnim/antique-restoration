@@ -617,6 +617,7 @@ function buildTools(){
 }
 /* Blender 제작 정교 도구(tools.glb) 로드 — 실패 시 절차적 도구로 폴백 */
 const TOOLMODELS={};
+let brushBristle=null, brushBristleRest=null, scrubPulse=0;
 const TOOLBASE={blow:0.62,brush:0.6,swab:0.7};
 function addToolModel(key,obj3d){
   const inner=new THREE.Group(); inner.add(obj3d); inner.scale.setScalar(TOOLBASE[key]||1);
@@ -625,10 +626,21 @@ function addToolModel(key,obj3d){
 }
 new THREE.GLTFLoader().load('tools.glb',(gl)=>{
   const root=gl.scene||gl.scenes[0];
-  ['blow','brush','swab'].forEach(k=>{
+  ['blow','swab'].forEach(k=>{
     const node=root.getObjectByName(k);
     if(node){ if(node.parent)node.parent.remove(node); addToolModel(k,node); }
   });
+  // 세척솔: 손잡이 + 강모(별도 노드)를 한 inner 그룹에, 강모는 애니메이션용 참조
+  const bh=root.getObjectByName('brush'), bb=root.getObjectByName('brush_bristle');
+  if(bh){
+    const inner=new THREE.Group();
+    if(bh.parent)bh.parent.remove(bh); inner.add(bh);
+    if(bb){ if(bb.parent)bb.parent.remove(bb); inner.add(bb);
+      brushBristle=bb; brushBristleRest={rx:bb.rotation.x,ry:bb.rotation.y,sx:bb.scale.x,sy:bb.scale.y,sz:bb.scale.z}; }
+    inner.scale.setScalar(TOOLBASE.brush||1);
+    const outer=new THREE.Group(); outer.add(inner); outer.visible=false;
+    toolCursor.add(outer); TOOLMODELS.brush=outer;
+  }
 },undefined,(e)=>{
   console.log('TOOLS glb FAILED, fallback', e&&e.message);
   const proc=buildTools();
@@ -747,6 +759,7 @@ function cleanAt(e){
     }
   }else active.brush(u,v,r,tool);
   lastHit={u,v};
+  scrubPulse=1;
   Snd.keepClean(tool,Math.min(1,moved/(r*2)));
   if(lastCleanHit){
     const origin=lastCleanHit.point.clone().addScaledVector(lastCleanHit.normal,0.12);
@@ -828,6 +841,16 @@ function animate(){
   const dt=Math.min(0.05,clock.getDelta());
   if(dirtUniforms) dirtUniforms.uHeat.value = heat?(0.35+0.35*Math.sin(performance.now()*0.005)):0;
   if(active&&active._amtDirty){active.amtTex.needsUpdate=true;active._amtDirty=false;}
+  scrubPulse=Math.max(0,scrubPulse-dt*3.5);
+  if(brushBristle&&brushBristleRest){
+    const on=(mode==='clean'&&tool==='brush')?scrubPulse:0;
+    const tt=performance.now()*0.035;
+    brushBristle.rotation.x=brushBristleRest.rx+Math.sin(tt)*0.28*on;
+    brushBristle.rotation.y=brushBristleRest.ry+Math.cos(tt*1.35)*0.20*on;
+    brushBristle.scale.z=brushBristleRest.sz*(1-0.16*on);
+    brushBristle.scale.x=brushBristleRest.sx*(1+0.10*on);
+    brushBristle.scale.y=brushBristleRest.sy*(1+0.10*on);
+  }
   updateBursts(dt); updateJet(dt);
   camR+=(camRTarget-camR)*Math.min(1,dt*8);
   placeCamera();
