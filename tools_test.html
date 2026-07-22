@@ -1,0 +1,41 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#1a1510;overflow:hidden}</style></head>
+<body>
+<script src="node_modules/three/build/three.min.js"></script>
+<script src="node_modules/three/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+const W=innerWidth,H=innerHeight;
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(W,H); renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
+document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x1a1510);
+const camera=new THREE.PerspectiveCamera(38,W/H,0.01,100);
+camera.position.set(0,0.0,3.0); camera.lookAt(0,0,0);
+scene.add(new THREE.HemisphereLight(0xfff2d8,0x201810,0.7));
+const key=new THREE.DirectionalLight(0xffffff,2.0); key.position.set(2,3,2.5); scene.add(key);
+const rim=new THREE.DirectionalLight(0xffe0a0,0.9); rim.position.set(-2,1,-2); scene.add(rim);
+const pmrem=new THREE.PMREMGenerator(renderer);
+const cv=document.createElement('canvas');cv.width=cv.height=128;const g=cv.getContext('2d');
+const gr=g.createLinearGradient(0,0,0,128);gr.addColorStop(0,'#fff7e6');gr.addColorStop(.5,'#8c7048');gr.addColorStop(1,'#0a0705');
+g.fillStyle=gr;g.fillRect(0,0,128,128);
+const et=new THREE.CanvasTexture(cv);et.mapping=THREE.EquirectangularReflectionMapping;
+scene.environment=pmrem.fromEquirectangular(et).texture;
+window.__ready=false;
+new THREE.GLTFLoader().load('tools.glb',(gl)=>{
+  const root=gl.scene||gl.scenes[0];
+  const ys={blow:0.62,brush:0.0,swab:-0.6};
+  ['blow','brush','swab'].forEach(k=>{
+    const node=root.getObjectByName(k); if(!node)return;
+    if(node.parent)node.parent.remove(node);
+    const wrap=new THREE.Group();
+    node.position.set(0,0,0); node.rotation.set(0,0,0);
+    wrap.add(node);
+    // 옆모습: 로컬 +Z(작업방향)를 화면 오른쪽(+X)으로, 살짝 기울임
+    wrap.rotation.y=-Math.PI/2; wrap.rotation.z=0.12; wrap.scale.setScalar(0.62);
+    wrap.position.set(-0.55,ys[k],0);
+    scene.add(wrap);
+  });
+  window.__ready=true;
+},undefined,e=>{document.title='ERR:'+e;});
+(function loop(){requestAnimationFrame(loop);renderer.render(scene,camera);})();
+</script></body></html>

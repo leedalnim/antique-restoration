@@ -36,7 +36,7 @@ const { chromium } = require('playwright');
     await page.mouse.up();
     await page.waitForTimeout(120);
   }
-  await page.mouse.move(50,720); // 빈 곳으로 이동 → 도구 커서 숨김
+  await page.mouse.move(300,300); // 몸통 위 hover → 도구 표시
   await page.waitForTimeout(700);
   const pct = await page.evaluate(()=>document.querySelector('#pct')?.textContent);
   await page.screenshot({ path: out });

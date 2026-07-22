@@ -86,6 +86,9 @@ canvas{display:block;cursor:grab}
 .sbtn.on{background:linear-gradient(180deg,var(--gold-a),var(--gold-b));border-color:#fff3d4}
 .sbtn:active{transform:scale(.9)}
 #resetBtn{font-size:25px}
+.ic{width:19px;height:19px;flex:none;display:inline-block;vertical-align:-4px}
+.sbtn .ic{width:23px;height:23px;vertical-align:middle}
+#selBtn .em .ic{width:18px;height:18px}
 #toast{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%) scale(.9);z-index:8;
   background:rgba(70,14,10,.94);color:#ffe2d6;border:1.5px solid #d88a72;border-radius:6px;
   padding:11px 20px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;
@@ -112,7 +115,7 @@ canvas{display:block;cursor:grab}
   <div id="title"><h1>골동품 복원 공방</h1><span>ATELIER DE RESTAURATION</span></div>
   <div id="spacer"></div>
   <button id="selBtn">
-    <span class="em">🧘</span>
+    <span class="em"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20c-4.4 0-8-2.8-8-6.5 2.2 0 4 1.2 4.6 2.6C8.1 12 9.3 9.4 12 7c2.7 2.4 3.9 5 3.4 9 .6-1.4 2.4-2.6 4.6-2.6 0 3.7-3.6 6.5-8 6.5z"/><path d="M12 20c-1.9 0-3.4-2.6-3.4-5.7 0-2.1 1.4-4.5 3.4-6.3 2 1.8 3.4 4.2 3.4 6.3C15.4 17.4 13.9 20 12 20z"/></svg></span>
     <span class="nm">금동미륵보살반가사유상</span>
     <span class="mini">✓</span>
   </button>
@@ -124,10 +127,10 @@ canvas{display:block;cursor:grab}
 <div id="dock">
   <div id="bar2">
     <div id="modes">
-      <button class="mode on" data-mode="rotate">🔄 회전</button>
-      <button class="mode" data-mode="clean">🧽 청소</button>
+      <button class="mode on" data-mode="rotate"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 9"/><path d="M3 21v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 15"/></svg> 회전</button>
+      <button class="mode" data-mode="clean"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/><path d="M18.5 14l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg> 청소</button>
     </div>
-    <button id="toolBtn"><span class="em" id="toolBtnEm">🖌️</span><span id="toolBtnNm">세척솔</span><span class="chev">▲</span></button>
+    <button id="toolBtn"><span class="em" id="toolBtnEm"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 12l8-8a2.1 2.1 0 0 1 3 3l-8 8"/><path d="M8 13c-1.7 0-3 1.3-3 3 0 1.3-1.2 1.6-2 2 1 1.2 2.5 2 4 2 2.2 0 4-1.8 4-4 0-1.7-1.3-3-3-3z"/></svg></span><span id="toolBtnNm">세척솔</span><span class="chev">▲</span></button>
     <div id="plaque">
       <div class="row"><span class="label">복원</span><span class="pct" id="pct">0%</span></div>
       <div id="bar"><div id="fill"></div></div>
@@ -136,9 +139,9 @@ canvas{display:block;cursor:grab}
 </div>
 
 <div id="toolPop">
-  <button class="tool" data-tool="blow"><span class="em">🌬️</span><span class="txt">에어블로워<small>흙먼지를 넓게 날림</small></span></button>
-  <button class="tool on" data-tool="brush"><span class="em">🖌️</span><span class="txt">세척솔<small>녹·때를 쓸어냄</small></span></button>
-  <button class="tool" data-tool="swab"><span class="em">🧼</span><span class="txt">면봉<small>좁은 틈만 콕콕</small></span></button>
+  <button class="tool" data-tool="blow"><span class="em"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10a2.5 2.5 0 1 0-2.5-2.5"/><path d="M3 12h15a2.5 2.5 0 1 1-2.5 2.5"/><path d="M3 16h8"/></svg></span><span class="txt">에어블로워<small>흙먼지를 넓게 날림</small></span></button>
+  <button class="tool on" data-tool="brush"><span class="em"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 12l8-8a2.1 2.1 0 0 1 3 3l-8 8"/><path d="M8 13c-1.7 0-3 1.3-3 3 0 1.3-1.2 1.6-2 2 1 1.2 2.5 2 4 2 2.2 0 4-1.8 4-4 0-1.7-1.3-3-3-3z"/></svg></span><span class="txt">세척솔<small>녹·때를 쓸어냄</small></span></button>
+  <button class="tool" data-tool="swab"><span class="em"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="18" x2="18" y2="6"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/></svg></span><span class="txt">면봉<small>좁은 틈만 콕콕</small></span></button>
 </div>
 
 <div id="toast"></div>
@@ -146,8 +149,8 @@ canvas{display:block;cursor:grab}
 <div id="sidebtns">
   <button class="sbtn" id="zoomIn" aria-label="확대">＋</button>
   <button class="sbtn" id="zoomOut" aria-label="축소">－</button>
-  <button class="sbtn" id="heatBtn" aria-label="오염표시">🔍</button>
-  <button class="sbtn" id="resetBtn" aria-label="제자리">⟲</button>
+  <button class="sbtn" id="heatBtn" aria-label="오염표시"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+  <button class="sbtn" id="resetBtn" aria-label="제자리"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v6h6"/><path d="M21 12a9 9 0 1 1-4-7.5L21 9"/></svg></button>
 </div>
 
 <div id="credit">3D 데이터: 국가유산청 · 공공누리 제1유형(출처표시)</div>
@@ -452,10 +455,10 @@ const TOOLS={
 };
 const isTouch=('ontouchstart' in window)&&navigator.maxTouchPoints>0;
 const HINTS=isTouch?{
-  rotate:'드래그로 <b>회전</b> · 두 손가락 <b>확대</b> · 우측 <b>＋ － ⟲</b>',
+  rotate:'드래그로 <b>회전</b> · 두 손가락 <b>확대</b> · 우측 버튼으로 <b>확대·축소·되돌리기</b>',
   clean:'유물을 <b>문지르면</b> 녹·때가 벗겨집니다 · 빈 곳 드래그로 회전',
 }:{
-  rotate:'좌드래그로 <b>회전</b> · <b>휠</b> 확대축소 · 우측 <b>＋ － ⟲</b>',
+  rotate:'좌드래그로 <b>회전</b> · <b>휠</b> 확대축소 · 우측 버튼으로 <b>확대·축소·되돌리기</b>',
   clean:'유물 위를 <b>문질러</b> 세척 · <b>빈 곳/우클릭 드래그</b>로 회전',
 };
 function setHint(){ $('#hint').innerHTML=HINTS[mode]; showHint(); }
@@ -474,14 +477,14 @@ $$('.mode').forEach(b=>b.onclick=()=>{
 });
 
 const TOOLNAME={blow:'블로워',brush:'세척솔',swab:'면봉'};
-const TOOLEM={blow:'🌬️',brush:'🖌️',swab:'🧼'};
+const TOOLEM={blow:`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10a2.5 2.5 0 1 0-2.5-2.5"/><path d="M3 12h15a2.5 2.5 0 1 1-2.5 2.5"/><path d="M3 16h8"/></svg>`,brush:`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 12l8-8a2.1 2.1 0 0 1 3 3l-8 8"/><path d="M8 13c-1.7 0-3 1.3-3 3 0 1.3-1.2 1.6-2 2 1 1.2 2.5 2 4 2 2.2 0 4-1.8 4-4 0-1.7-1.3-3-3-3z"/></svg>`,swab:`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="18" x2="18" y2="6"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/></svg>`};
 function openToolPop(){$('#toolPop').classList.add('open');}
 function closeToolPop(){$('#toolPop').classList.remove('open');}
 $('#toolBtn').onclick=(e)=>{e.stopPropagation();$('#toolPop').classList.contains('open')?closeToolPop():openToolPop();};
 $$('.tool').forEach(b=>b.onclick=()=>{
   tool=b.dataset.tool;
   $$('.tool').forEach(x=>x.classList.toggle('on',x===b));
-  $('#toolBtnEm').textContent=TOOLEM[tool];
+  $('#toolBtnEm').innerHTML=TOOLEM[tool];
   $('#toolBtnNm').textContent=TOOLNAME[tool];
   closeToolPop();
 });
@@ -492,8 +495,8 @@ document.addEventListener('pointerdown',e=>{
 $('#zoomIn').onclick=()=>{camRTarget=Math.max(1.8,camRTarget-0.55);};
 $('#zoomOut').onclick=()=>{camRTarget=Math.min(6.5,camRTarget+0.55);};
 let heat=false;
-$('#heatBtn').onclick=()=>{ heat=!heat; $('#heatBtn').classList.toggle('on',heat); toast(heat?'🔍 남은 오염 표시 켜짐':'🔍 오염 표시 꺼짐'); };
-$('#resetBtn').onclick=()=>{ Snd.stopClean(); camTheta=0.5;camPhi=1.12;camRTarget=3.5; toast('⟲ 제자리로 되돌렸습니다'); };
+$('#heatBtn').onclick=()=>{ heat=!heat; $('#heatBtn').classList.toggle('on',heat); toast(heat?'남은 오염 표시 켜짐':'오염 표시 꺼짐'); };
+$('#resetBtn').onclick=()=>{ Snd.stopClean(); camTheta=0.5;camPhi=1.12;camRTarget=3.5; toast('제자리로 되돌렸습니다'); };
 
 function updateProgressUI(){
   if(!active)return;
@@ -563,8 +566,25 @@ function buildTools(){
     tools.swab=g; }
   return tools;
 }
-const TOOLMODELS=buildTools();
-for(const k in TOOLMODELS){TOOLMODELS[k].visible=false;toolCursor.add(TOOLMODELS[k]);}
+/* Blender 제작 정교 도구(tools.glb) 로드 — 실패 시 절차적 도구로 폴백 */
+const TOOLMODELS={};
+const TOOLBASE={blow:0.62,brush:0.6,swab:0.7};
+function addToolModel(key,obj3d){
+  const inner=new THREE.Group(); inner.add(obj3d); inner.scale.setScalar(TOOLBASE[key]||1);
+  const outer=new THREE.Group(); outer.add(inner); outer.visible=false;
+  toolCursor.add(outer); TOOLMODELS[key]=outer;
+}
+new THREE.GLTFLoader().load('tools.glb',(gl)=>{
+  const root=gl.scene||gl.scenes[0];
+  ['blow','brush','swab'].forEach(k=>{
+    const node=root.getObjectByName(k);
+    if(node){ if(node.parent)node.parent.remove(node); addToolModel(k,node); }
+  });
+},undefined,(e)=>{
+  console.log('TOOLS glb FAILED, fallback', e&&e.message);
+  const proc=buildTools();
+  for(const k in proc){ proc[k].visible=false; toolCursor.add(proc[k]); TOOLMODELS[k]=proc[k]; }
+});
 
 /* 분사(제트) 이펙트 */
 const jet=[];
@@ -622,9 +642,10 @@ function updateToolCursor(e){
   cursorRing.position.copy(h.point).addScaledVector(n,0.012);
   cursorRing.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),n);
   cursorRing.scale.setScalar(wr);
-  toolCursor.visible=true;
   for(const k in TOOLMODELS)TOOLMODELS[k].visible=(k===tool);
   const model=TOOLMODELS[tool];
+  if(!model){toolCursor.visible=false;return;}
+  toolCursor.visible=true;
   const toCam=camera.position.clone().sub(h.point).normalize();
   const aim=n.clone().multiplyScalar(0.65).add(toCam.clone().multiplyScalar(0.35)).normalize();
   toolCursor.position.copy(h.point);
