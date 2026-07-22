@@ -1,0 +1,115 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#15120c;overflow:hidden}</style></head>
+<body>
+<script src="node_modules/three/build/three.min.js"></script>
+<script src="node_modules/three/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+const params=new URLSearchParams(location.search);
+const scrub=params.get('scrub')||'0';   // '0'=완전 더러움, 'partial', 'full'=깨끗
+const W=innerWidth,H=innerHeight;
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(W,H); renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=0.92;
+document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x15120c);
+const camera=new THREE.PerspectiveCamera(38,W/H,0.01,100);
+scene.add(new THREE.HemisphereLight(0xfff2d8,0x201810,0.85));
+const key=new THREE.DirectionalLight(0xffffff,2.4); key.position.set(2,3,2.5); scene.add(key);
+const rim=new THREE.DirectionalLight(0xffe0a0,1.1); rim.position.set(-2,1,-2); scene.add(rim);
+
+// ---------- 값 노이즈 (유기적 얼룩) ----------
+function makeNoise(S,seed){
+  const g=Math.ceil(S/8)+2; const r=[];
+  let s=seed||1; const rnd=()=>{s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff;};
+  for(let i=0;i<g*g;i++) r.push(rnd());
+  const at=(x,y)=>r[((y%g)+g)%g*g+((x%g)+g)%g];
+  const sm=(x,y)=>{const fx=Math.floor(x),fy=Math.floor(y),tx=x-fx,ty=y-fy;
+    const u=tx*tx*(3-2*tx),v=ty*ty*(3-2*ty);
+    return at(fx,fy)*(1-u)*(1-v)+at(fx+1,fy)*u*(1-v)+at(fx,fy+1)*(1-u)*v+at(fx+1,fy+1)*u*v;};
+  return (x,y)=>{ // fbm
+    let f=0,a=0.5,sc=1/14;
+    for(let o=0;o<5;o++){f+=a*sm(x*sc,y*sc);sc*=2;a*=0.5;}
+    return f;
+  };
+}
+// ---------- 개더티 때 텍스처 생성 ----------
+function makeDirtCanvas(S){
+  const c=document.createElement('canvas'); c.width=c.height=S; const x=c.getContext('2d');
+  const img=x.createImageData(S,S); const d=img.data;
+  const n1=makeNoise(S,7), n2=makeNoise(S,31), n3=makeNoise(S,99);
+  for(let j=0;j<S;j++)for(let i=0;i<S;i++){
+    const k=(j*S+i)*4;
+    let grime=n1(i,j);                        // 흙때 분포
+    let green=n2(i*1.7,j*1.7);                // 청동 녹(bronze disease)
+    let crust=Math.pow(n3(i*3,j*3),1.4);      // 진한 딱지/그을음(어둡게)
+    let soil=Math.pow(n1(i*0.9+120,j*0.9+120),1.2); // 흙갈색 덩어리
+    // 거의 검은 베이스에서 시작 → 진녹/흙갈 덧칠, 그을음은 더 어둡게
+    let R= 8 + green*15 + soil*24 - crust*16;
+    let G= 11 + green*27 + soil*16 - crust*20; // 녹이라 G 우세
+    let B= 6 + green*11 + soil*7  - crust*11;
+    // 아주 드물게 옅은 흙먼지 반점(극소량)
+    const dust=Math.pow(n1(i*2.3+50,j*2.3+50),6);
+    R+=dust*24; G+=dust*24; B+=dust*16;
+    R=Math.floor(R); G=Math.floor(G); B=Math.floor(B);
+    // 알파(때 두께): 극도로 두껍게(개더티). 거의 전면 덮음
+    let a = 0.9 + 0.1*grime + 0.1*crust - 0.05*Math.pow(dust,0.5);
+    a=Math.max(0.7,Math.min(1,a));
+    d[k]=Math.max(0,Math.min(255,R)); d[k+1]=Math.max(0,Math.min(255,G));
+    d[k+2]=Math.max(0,Math.min(255,B)); d[k+3]=255;
+    // 알파는 텍스처 A로: 곱해서 별도 채널로 저장 위해 canvas 자체에 넣기 위해 프리멀티X — 대신 아래서 tex.a 사용
+    d[k+3]=Math.floor(a*255);
+  }
+  x.putImageData(img,0,0);
+  return c;
+}
+
+const dirtCanvas=makeDirtCanvas(1024);
+const dctx=dirtCanvas.getContext('2d');
+// 미리보기용 스크럽: 대각선으로 벗겨 금동 드러냄
+if(scrub==='full'){ dctx.clearRect(0,0,1024,1024); }
+else if(scrub==='partial'){
+  dctx.globalCompositeOperation='destination-out';
+  // 여러 원으로 몸통 중앙~우측을 문지른 것처럼
+  for(let p=0;p<220;p++){
+    const t=p/220; const cx=520+Math.sin(t*7)*230; const cy=120+t*820;
+    const rad=60+Math.random()*30;
+    const g=dctx.createRadialGradient(cx,cy,0,cx,cy,rad);
+    g.addColorStop(0,'rgba(0,0,0,1)'); g.addColorStop(0.7,'rgba(0,0,0,0.8)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    dctx.fillStyle=g; dctx.beginPath(); dctx.arc(cx,cy,rad,0,7); dctx.fill();
+  }
+  dctx.globalCompositeOperation='source-over';
+}
+const dirtTex=new THREE.CanvasTexture(dirtCanvas); dirtTex.flipY=false; dirtTex.needsUpdate=true;
+
+window.__ready=false;
+const loader=new THREE.GLTFLoader();
+loader.load('khs_buddha.glb',(gl)=>{
+  const obj=gl.scene;
+  const tl=new THREE.TextureLoader();
+  const Tx=(u,s)=>{const t=tl.load(u);t.flipY=false;if(s)t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return t;};
+  const C=Tx('tex_in/T_24RE0001_C.png',true), M=Tx('tex_in/T_24RE0001_M.png',false), N=Tx('tex_in/T_24RE0001_N.png',false);
+  const mat=new THREE.MeshStandardMaterial({map:C,normalMap:N,metalnessMap:M,roughnessMap:M,metalness:1,roughness:1});
+  mat.onBeforeCompile=(sh)=>{
+    sh.uniforms.uDirt={value:dirtTex};
+    sh.fragmentShader='uniform sampler2D uDirt;\n'+sh.fragmentShader
+      .replace('#include <map_fragment>',
+        `#include <map_fragment>
+         vec4 dcolG = texture2D(uDirt, vUv);
+         diffuseColor.rgb = mix(diffuseColor.rgb, dcolG.rgb, dcolG.a);`)
+      .replace('#include <roughnessmap_fragment>',
+        `#include <roughnessmap_fragment>
+         roughnessFactor = mix(roughnessFactor, 0.97, dcolG.a);`)
+      .replace('#include <metalnessmap_fragment>',
+        `#include <metalnessmap_fragment>
+         metalnessFactor = mix(metalnessFactor, 0.0, dcolG.a);`);
+  };
+  obj.traverse(o=>{ if(o.isMesh) o.material=mat; });
+  const box=new THREE.Box3().setFromObject(obj);
+  const size=box.getSize(new THREE.Vector3()), ctr=box.getCenter(new THREE.Vector3());
+  obj.position.sub(ctr); scene.add(obj);
+  const maxd=Math.max(size.x,size.y,size.z);
+  camera.position.set(0,0,maxd*2.1); camera.lookAt(0,0,0);
+  window.__ready=true;
+},undefined,(e)=>{window.__err=String(e);});
+(function loop(){ requestAnimationFrame(loop); renderer.render(scene,camera); })();
+</script>
+</body></html>

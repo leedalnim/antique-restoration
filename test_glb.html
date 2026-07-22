@@ -19,14 +19,20 @@ const loader=new THREE.GLTFLoader();
 loader.load('khs_buddha.glb',(g)=>{
   const obj=g.scene;
   // placeholder shiny gilt-bronze material (until real C/M/N textures arrive)
-  const state=new URLSearchParams(location.search).get('state')||'clean';
-  const mats={
-    clean:{color:0xC9A24B,metalness:0.98,roughness:0.24},
-    dirty:{color:0x2b3327,metalness:0.05,roughness:1.0,emissive:0x0a0d07,emissiveIntensity:1.0},
-  };
-  obj.traverse(o=>{ if(o.isMesh){
-    o.material=new THREE.MeshStandardMaterial(mats[state]);
-  }});
+  const state=new URLSearchParams(location.search).get('state')||'real';
+  const tl=new THREE.TextureLoader();
+  function T(u,srgb){const t=tl.load(u);t.flipY=false;if(srgb)t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return t;}
+  const C=T('tex_in/T_24RE0001_C.png',true);
+  const M=T('tex_in/T_24RE0001_M.png',false);
+  const N=T('tex_in/T_24RE0001_N.png',false);
+  let mat;
+  if(state==='real'){
+    mat=new THREE.MeshStandardMaterial({map:C,normalMap:N,metalnessMap:M,roughnessMap:M,metalness:1,roughness:1});
+  }else if(state==='clean'){ // 광 낸 금동(반딱반딱): 러프니스 낮춰 번쩍
+    mat=new THREE.MeshStandardMaterial({map:C,normalMap:N,metalness:1.0,roughness:0.22,
+      emissive:0x2a1e08,emissiveIntensity:0.25});
+  }else{ mat=new THREE.MeshStandardMaterial({color:0xC9A24B,metalness:0.98,roughness:0.24}); }
+  obj.traverse(o=>{ if(o.isMesh) o.material=mat; });
   // center + frame
   const box=new THREE.Box3().setFromObject(obj);
   const size=box.getSize(new THREE.Vector3()), ctr=box.getCenter(new THREE.Vector3());
