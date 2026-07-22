@@ -6,3 +6,5 @@ __pycache__/
 prev_*.png
 ref_*.png
 *.glb
+censer_*.png
+censer_*.stl
