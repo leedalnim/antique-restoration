@@ -1,0 +1,42 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#15120c;overflow:hidden}</style></head>
+<body>
+<script src="node_modules/three/build/three.min.js"></script>
+<script src="node_modules/three/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+const W=innerWidth,H=innerHeight;
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(W,H); renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
+document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x15120c);
+const camera=new THREE.PerspectiveCamera(38,W/H,0.01,100);
+// lights
+const hemi=new THREE.HemisphereLight(0xfff2d8,0x201810,0.9); scene.add(hemi);
+const key=new THREE.DirectionalLight(0xffffff,2.2); key.position.set(2,3,2); scene.add(key);
+const rim=new THREE.DirectionalLight(0xffe0a0,1.2); rim.position.set(-2,1,-2); scene.add(rim);
+window.__ready=false;
+const loader=new THREE.GLTFLoader();
+loader.load('khs_buddha.glb',(g)=>{
+  const obj=g.scene;
+  // placeholder shiny gilt-bronze material (until real C/M/N textures arrive)
+  const state=new URLSearchParams(location.search).get('state')||'clean';
+  const mats={
+    clean:{color:0xC9A24B,metalness:0.98,roughness:0.24},
+    dirty:{color:0x2b3327,metalness:0.05,roughness:1.0,emissive:0x0a0d07,emissiveIntensity:1.0},
+  };
+  obj.traverse(o=>{ if(o.isMesh){
+    o.material=new THREE.MeshStandardMaterial(mats[state]);
+  }});
+  // center + frame
+  const box=new THREE.Box3().setFromObject(obj);
+  const size=box.getSize(new THREE.Vector3()), ctr=box.getCenter(new THREE.Vector3());
+  obj.position.sub(ctr);
+  scene.add(obj);
+  const maxd=Math.max(size.x,size.y,size.z);
+  camera.position.set(0,0,maxd*2.1); camera.lookAt(0,0,0);
+  window.__ready=true;
+},undefined,(e)=>{ document.title='ERR:'+e; window.__err=String(e); });
+let t=0;
+(function loop(){ requestAnimationFrame(loop); t+=0.01; renderer.render(scene,camera); })();
+</script>
+</body></html>
