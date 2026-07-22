@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>스타일 샘플 — 통통한 향로</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#bfe3f2;font-family:system-ui,'Apple SD Gothic Neo',sans-serif}
+#stage{position:fixed;inset:0;touch-action:none}
+#tag{position:fixed;top:calc(14px + env(safe-area-inset-top));left:0;right:0;text-align:center;
+  color:#fff;font-weight:800;font-size:17px;letter-spacing:.02em;text-shadow:0 2px 6px rgba(80,120,160,.5);pointer-events:none}
+#tag small{display:block;font-size:11px;font-weight:600;opacity:.9;margin-top:2px}
+#tools{position:fixed;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom));
+  display:flex;justify-content:center;gap:10px}
+.tool{width:66px;height:66px;border-radius:20px;border:none;background:#eaf6fd;
+  box-shadow:0 6px 0 #b9d9ea,0 10px 18px rgba(70,110,150,.28);
+  font-size:30px;cursor:pointer;transition:transform .08s;display:flex;align-items:center;justify-content:center}
+.tool:active{transform:translateY(3px);box-shadow:0 3px 0 #b9d9ea,0 6px 12px rgba(70,110,150,.28)}
+.tool.on{background:#fff2c9;box-shadow:0 6px 0 #e6c766,0 10px 18px rgba(150,120,40,.3)}
+#loading{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;
+  background:#bfe3f2;color:#5b8fb0;font-weight:800;letter-spacing:.2em;transition:opacity .5s}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="tag">스타일 샘플 — 통통한 향로<small>드래그로 회전 · 나사를 톡 치면 풀림 · 솔로 문지르면 세척</small></div>
+<div id="tools">
+  <button class="tool on" data-t="brush">🧽</button>
+  <button class="tool" data-t="screw">🪛</button>
+</div>
+<div id="loading">준 비 중</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+['touchmove','gesturestart','gesturechange'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+
+/* ---------- 렌더러: 밝고 부드럽게 ---------- */
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=0.92;
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+$('#stage').appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+let composer=null;
+scene.background=new THREE.Color(0xbfe3f2);
+/* 부드러운 배경 그라데이션(하늘색→연한 크림) */
+(function bg(){
+  const c=document.createElement('canvas');c.width=8;c.height=256;const g=c.getContext('2d');
+  const gr=g.createLinearGradient(0,0,0,256);
+  gr.addColorStop(0,'#7fa8c4');gr.addColorStop(.55,'#9cbcd0');gr.addColorStop(1,'#c2cfc9');
+  g.fillStyle=gr;g.fillRect(0,0,8,256);
+  scene.background=new THREE.CanvasTexture(c);
+})();
+
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,0.05,60);
+const camTarget=new THREE.Vector3(0,0.35,0);
+let camR=4.4,camTheta=0.55,camPhi=1.15,camRT=4.4;
+function place(){camera.position.set(
+  camTarget.x+camR*Math.sin(camPhi)*Math.sin(camTheta),
+  camTarget.y+camR*Math.cos(camPhi),
+  camTarget.z+camR*Math.sin(camPhi)*Math.cos(camTheta));camera.lookAt(camTarget);}
+place();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);if(composer)composer.setSize(innerWidth,innerHeight);});
+
+/* ---------- 조명: 밝은 스튜디오, 부드러운 그림자 ---------- */
+scene.add(new THREE.HemisphereLight(0xffffff,0xacc6d6,0.55));
+const key=new THREE.DirectionalLight(0xfff4e2,1.15);
+key.position.set(3,6,4);key.castShadow=true;
+key.shadow.mapSize.set(2048,2048);
+key.shadow.camera.near=0.5;key.shadow.camera.far=20;
+key.shadow.camera.left=-4;key.shadow.camera.right=4;key.shadow.camera.top=4;key.shadow.camera.bottom=-4;
+key.shadow.bias=-0.0004;key.shadow.radius=6;
+scene.add(key);
+const fill=new THREE.DirectionalLight(0xbfd8ee,0.35);fill.position.set(-4,2,-3);scene.add(fill);
+
+/* IBL: 밝은 스튜디오 */
+(function ibl(){
+  const S=128,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');
+  const gr=g.createLinearGradient(0,0,0,S);
+  gr.addColorStop(0,'#dfe8ee');gr.addColorStop(.5,'#b6c7d3');gr.addColorStop(1,'#7d94a4');
+  g.fillStyle=gr;g.fillRect(0,0,S,S);
+  const t=new THREE.CanvasTexture(c);t.mapping=THREE.EquirectangularReflectionMapping;
+  const pm=new THREE.PMREMGenerator(renderer);pm.compileEquirectangularShader();
+  scene.environment=pm.fromEquirectangular(t).texture;t.dispose();pm.dispose();
+})();
+
+/* ---------- 세면대(둥근 그릇) + 물 ---------- */
+const root=new THREE.Group();scene.add(root);
+(function basin(){
+  const bowl=new THREE.Mesh(
+    new THREE.LatheGeometry([[0,0],[1.5,0],[1.65,0.18],[1.62,0.5],[1.75,0.62]].map(p=>new THREE.Vector2(p[0],p[1])),64),
+    new THREE.MeshStandardMaterial({color:0xf5b8c4,roughness:0.75,metalness:0}));
+  bowl.position.y=-0.55;bowl.receiveShadow=true;bowl.castShadow=true;scene.add(bowl);
+  const water=new THREE.Mesh(new THREE.CircleGeometry(1.45,48),
+    new THREE.MeshStandardMaterial({color:0x8fd6ea,roughness:0.2,metalness:0,transparent:true,opacity:0.85}));
+  water.rotation.x=-Math.PI/2;water.position.y=-0.36;scene.add(water);
+})();
+
+/* ---------- 매끈 무광 재질 팔레트 ---------- */
+const mat=(hex,rough=0.55)=>new THREE.MeshStandardMaterial({color:hex,roughness:rough,metalness:0.0});
+const COL={
+  body:0xf4c542,      // 통통한 본체(노랑)
+  bodyDark:0xe0ad2e,
+  cream:0xf7e6b0,
+  lid:0xf0b64a,
+  foot:0xe8a838,
+};
+const SCREWCOLORS=[0x5b8def,0x53c07a,0xe86a6a,0x9b6ae8,0x33bec8,0xf2a03d];
+
+/* 파트 시스템 (간단판) */
+const parts=[];
+function Part(name){return{name,group:new THREE.Group(),meshes:[],detached:false,t:0,home:null,out:new THREE.Vector3(),isScrew:false,flash:0};}
+function finalize(p,pos){p.group.position.set(pos[0],pos[1],pos[2]);p.home=p.group.position.clone();parts.push(p);root.add(p.group);}
+
+/* ===== 세척용 오염: 본체 위에 갈색 '때' 오버레이 메시(살짝 키운 복제)에 알파 텍스처 ===== */
+function makeDirtTex(){
+  const S=256,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');
+  const N=12,nz=[];for(let i=0;i<N*N;i++)nz.push(Math.random());
+  const sm=(x,y)=>{const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+    const a=nz[(yi%N)*N+xi%N],b=nz[(yi%N)*N+(xi+1)%N],cc=nz[((yi+1)%N)*N+xi%N],d=nz[((yi+1)%N)*N+(xi+1)%N];
+    const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);return a*(1-u)*(1-v)+b*u*(1-v)+cc*(1-u)*v+d*u*v;};
+  const img=g.getImageData(0,0,S,S),d=img.data;
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){
+    // 넓고 진하게: 임계 낮추고 대비 키움
+    let n=sm(x/S*4,y/S*4)*.55+sm(x/S*11,y/S*11)*.3+sm(x/S*26,y/S*26)*.15;
+    n=Math.max(0,(n-0.2)*1.9);
+    const i=(y*S+x)*4;
+    // 진한 흙갈색(짙게)
+    d[i]=58;d[i+1]=46;d[i+2]=30;d[i+3]=Math.min(255,n*280);
+  }
+  g.putImageData(img,0,0);
+  // 짙은 얼룩 덩어리 몇 개 추가
+  for(let k=0;k<40;k++){
+    const x=Math.random()*S,y=Math.random()*S,r=6+Math.random()*22;
+    const rg=g.createRadialGradient(x,y,0,x,y,r);
+    rg.addColorStop(0,'rgba(40,30,18,0.5)');rg.addColorStop(1,'rgba(40,30,18,0)');
+    g.fillStyle=rg;g.beginPath();g.arc(x,y,r,0,7);g.fill();
+  }
+  return c;
+}
+const dirts=[];
+/* geo를 살짝 부풀린 복제로 오염 껍질을 만든다 */
+function addDirty(part,geo,material){
+  const base=new THREE.Mesh(geo,material);base.castShadow=true;base.receiveShadow=true;
+  base.userData={part};part.meshes.push(base);part.group.add(base);
+  // 오염 껍질
+  const S=256;const src=makeDirtTex();const disp=document.createElement('canvas');disp.width=disp.height=S;
+  disp.getContext('2d').drawImage(src,0,0);
+  const tex=new THREE.CanvasTexture(disp);
+  const grime=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({
+    color:0x4a3c26,roughness:1.0,metalness:0,map:tex,transparent:true,alphaTest:0.02,depthWrite:true}));
+  grime.scale.setScalar(1.022);grime.castShadow=false;grime.receiveShadow=true;
+  grime.userData={part,grime:true};
+  part.meshes.push(grime);part.group.add(grime);
+  const ds={disp,tex,S,remain:1};dirts.push(ds);grime.userData.ds=ds;base.userData.ds=ds;
+  return base;
+}
+function cleanBrushAt(mesh,uv,radius){
+  const ds=mesh.userData.ds;if(!ds)return;
+  const g=ds.disp.getContext('2d');
+  g.globalCompositeOperation='destination-out';
+  const gr=g.createRadialGradient(uv.x*ds.S,(1-uv.y)*ds.S,0,uv.x*ds.S,(1-uv.y)*ds.S,radius);
+  gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(.7,'rgba(0,0,0,1)');gr.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=gr;g.beginPath();g.arc(uv.x*ds.S,(1-uv.y)*ds.S,radius,0,7);g.fill();
+  g.globalCompositeOperation='source-over';ds.tex.needsUpdate=true;
+}
+
+/* 나사 만들기(둥근 머리 + 십자홈) */
+function makeScrew(color){
+  const g=new THREE.Group();
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.13,24,20,0,Math.PI*2,0,Math.PI*0.5),mat(color,0.4));
+  head.scale.y=0.6;head.castShadow=true;g.add(head);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(0.12,0.03,12,28),mat(color,0.4));
+  rim.rotation.x=Math.PI/2;rim.castShadow=true;g.add(rim);
+  const slot1=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.02,0.035),mat(0xffffff,0.5));
+  slot1.position.y=0.075;g.add(slot1);
+  const slot2=slot1.clone();slot2.rotation.y=Math.PI/2;g.add(slot2);
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.04,0.2,16),mat(0xcfd4da,0.5));
+  shaft.position.y=-0.12;shaft.castShadow=true;g.add(shaft);
+  return g;
+}
+
+/* =========================================================
+   통통한 향로 만들기
+========================================================= */
+function smoothLathe(pts,seg){return new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg||96);}
+
+/* 본체: 아주 둥글고 통통하게 */
+const bodyP=Part('몸통');
+function accent(part,geo,material,pos,rot){
+  const m=new THREE.Mesh(geo,material);m.castShadow=true;m.receiveShadow=true;
+  if(pos)m.position.set(pos[0],pos[1],pos[2]);
+  if(rot)m.rotation.set(rot[0],rot[1],rot[2]);
+  m.userData={part};part.group.add(m);part.meshes.push(m);return m;
+}
+{
+  const bodyGeo=smoothLathe([
+    [0.0,0.0],[0.55,0.0],[0.95,0.12],[1.15,0.42],[1.18,0.8],
+    [1.0,1.15],[0.7,1.35],[0.55,1.42]
+  ]);
+  const body=addDirty(bodyP,bodyGeo,mat(COL.body,0.5));
+  // 안쪽 벽
+  const inner=new THREE.Mesh(smoothLathe([[0.55,1.4],[0.6,1.2],[0.5,0.9],[0.3,0.7],[0,0.62]]),
+    mat(COL.bodyDark,0.6));
+  inner.castShadow=true;inner.receiveShadow=true;inner.userData={part:bodyP};
+  bodyP.group.add(inner);bodyP.meshes.push(inner);
+  void body;
+  // 입구 몰딩(도톰한 립)
+  accent(bodyP,new THREE.TorusGeometry(0.58,0.09,20,48),mat(COL.foot,0.45),[0,1.4,0],[Math.PI/2,0,0]);
+  // 중간 장식 밴드(볼록한 링)
+  accent(bodyP,new THREE.TorusGeometry(1.17,0.06,16,64),mat(COL.bodyDark,0.5),[0,0.62,0],[Math.PI/2,0,0]);
+  accent(bodyP,new THREE.TorusGeometry(1.1,0.04,16,64),mat(COL.cream,0.5),[0,0.42,0],[Math.PI/2,0,0]);
+  // 어깨 리벳(작은 반구) 한 바퀴
+  for(let i=0;i<16;i++){
+    const a=i/16*Math.PI*2;
+    accent(bodyP,new THREE.SphereGeometry(0.05,12,10),mat(COL.cream,0.4),
+      [Math.cos(a)*1.12,0.95,Math.sin(a)*1.12]);
+  }
+  // 굽(바닥 링)
+  accent(bodyP,new THREE.CylinderGeometry(0.62,0.7,0.14,40),mat(COL.foot,0.5),[0,-0.03,0]);
+  // 통통한 손잡이 고리 2개 + 고리 받침
+  for(const sx of[-1,1]){
+    const ear=new THREE.Mesh(new THREE.TorusGeometry(0.22,0.07,20,32),mat(COL.foot,0.5));
+    ear.position.set(sx*1.12,0.85,0);ear.rotation.y=Math.PI/2;ear.castShadow=true;
+    ear.userData={part:bodyP};bodyP.group.add(ear);bodyP.meshes.push(ear);
+    accent(bodyP,new THREE.SphereGeometry(0.1,16,12),mat(COL.bodyDark,0.5),[sx*1.15,0.65,0]);
+  }
+}
+finalize(bodyP,[0,0,0]);
+
+/* 뚜껑: 돔형, 둥근 꼭지 */
+const lidP=Part('뚜껑');lidP.out.set(0,1.6,0.8);
+{
+  const lidGeo=smoothLathe([[0.0,0.0],[0.5,0.02],[0.95,0.18],[1.1,0.45],[0.9,0.72],[0.5,0.92],[0.2,1.0]]);
+  const lid=addDirty(lidP,lidGeo,mat(COL.lid,0.5));void lid;
+  // 뚜껑 테두리 립
+  accent(lidP,new THREE.TorusGeometry(1.02,0.07,18,56),mat(COL.foot,0.45),[0,0.36,0],[Math.PI/2,0,0]);
+  // 계단형 장식 링
+  accent(lidP,new THREE.TorusGeometry(0.72,0.045,16,48),mat(COL.cream,0.5),[0,0.62,0],[Math.PI/2,0,0]);
+  accent(lidP,new THREE.TorusGeometry(0.42,0.04,16,40),mat(COL.foot,0.5),[0,0.82,0],[Math.PI/2,0,0]);
+  // 꼭지 받침 + 꼭지
+  accent(lidP,new THREE.CylinderGeometry(0.14,0.2,0.12,20),mat(COL.foot,0.5),[0,0.96,0]);
+  const knob=new THREE.Mesh(new THREE.SphereGeometry(0.2,24,20),mat(COL.cream,0.45));
+  knob.position.y=1.12;knob.scale.y=1.15;knob.castShadow=true;knob.userData={part:lidP};
+  lidP.group.add(knob);lidP.meshes.push(knob);
+  // 연기구멍(둥근 홈) 장식
+  for(let i=0;i<8;i++){
+    const a=i/8*Math.PI*2;
+    const hole=new THREE.Mesh(new THREE.TorusGeometry(0.07,0.025,12,20),mat(COL.foot,0.5));
+    hole.position.set(Math.cos(a)*0.62,0.55,Math.sin(a)*0.62);hole.rotation.x=Math.PI/2;
+    hole.castShadow=true;hole.userData={part:lidP};lidP.group.add(hole);lidP.meshes.push(hole);
+  }
+}
+finalize(lidP,[0,1.42,0]);
+
+/* 다리 3개: 통통한 캡슐 */
+const legP=Part('다리');legP.out.set(0,-1.2,0.8);
+{
+  for(let i=0;i<3;i++){
+    const a=i/3*Math.PI*2;
+    const hasCap=(typeof THREE.CapsuleGeometry==='function');
+    const leg=new THREE.Mesh(
+      hasCap?new THREE.CapsuleGeometry(0.14,0.3,8,16):new THREE.CylinderGeometry(0.14,0.1,0.5,20),
+      mat(COL.foot,0.5));
+    leg.position.set(Math.cos(a)*0.75,-0.28,Math.sin(a)*0.75);
+    leg.rotation.set(Math.sin(a)*0.2,0,-Math.cos(a)*0.2);
+    leg.castShadow=true;leg.userData={part:legP};legP.group.add(leg);legP.meshes.push(leg);
+    // 발끝 공
+    const ball=new THREE.Mesh(new THREE.SphereGeometry(0.15,20,16),mat(COL.bodyDark,0.5));
+    ball.position.set(Math.cos(a)*0.82,-0.55,Math.sin(a)*0.82);ball.castShadow=true;
+    ball.userData={part:legP};legP.group.add(ball);legP.meshes.push(ball);
+  }
+}
+finalize(legP,[0,0,0]);
+
+/* 알록달록 나사들(장식+분해 트리거) */
+const screwParts=[];
+function addScrew(pos,color,idx){
+  const p=Part('나사');p.isScrew=true;
+  const s=makeScrew(color);
+  s.traverse(o=>{if(o.isMesh){o.userData={part:p};p.meshes.push(o);}});
+  p.group.add(s);
+  // 표면 법선 방향으로 눕히기
+  const n=new THREE.Vector3(pos[0],pos[1]-0.6,pos[2]).normalize();
+  p.group.position.set(pos[0],pos[1],pos[2]);
+  p.group.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),n);
+  p.home=p.group.position.clone();
+  p.out.copy(n).multiplyScalar(1.2).add(new THREE.Vector3(0,0.3,0));
+  parts.push(p);root.add(p.group);screwParts.push(p);
+}
+addScrew([0,1.9,0.6],SCREWCOLORS[0]);        // 뚜껑 위
+addScrew([0.7,1.0,0.9],SCREWCOLORS[1]);      // 몸통 앞
+addScrew([-0.8,0.9,0.6],SCREWCOLORS[2]);
+addScrew([0.9,0.6,-0.6],SCREWCOLORS[3]);
+addScrew([-0.6,1.3,-0.5],SCREWCOLORS[4]);
+
+/* =========================================================
+   상호작용
+========================================================= */
+let tool='brush';
+$$('.tool').forEach(b=>b.onclick=()=>{tool=b.dataset.t;$$('.tool').forEach(x=>x.classList.toggle('on',x===b));});
+const ray=new THREE.Raycaster();
+function allMeshes(){const a=[];for(const p of parts)for(const m of p.meshes)a.push(m);return a;}
+function ndc(e){return new THREE.Vector2(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight*2)+1);}
+
+const pointers=new Map();let lx=0,ly=0,drag=null,pinch=0,tap=null;
+const el=renderer.domElement;
+el.addEventListener('pointerdown',e=>{
+  el.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===1){
+    lx=e.clientX;ly=e.clientY;tap={x:e.clientX,y:e.clientY,t:performance.now()};
+    if(tool==='brush'){ray.setFromCamera(ndc(e),camera);const h=ray.intersectObjects(allMeshes())[0];
+      drag=h?'clean':'orbit';if(h&&h.uv)cleanBrushAt(h.object,h.uv,26);}
+    else drag='orbit';
+  }else if(pointers.size===2){const p=[...pointers.values()];pinch=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);tap=null;}
+});
+el.addEventListener('pointermove',e=>{
+  if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===2){const p=[...pointers.values()];const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+    if(pinch)camRT=Math.max(2.6,Math.min(7,camRT*pinch/d));pinch=d;return;}
+  const dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;
+  if(tool==='brush'&&drag==='clean'){ray.setFromCamera(ndc(e),camera);const h=ray.intersectObjects(allMeshes())[0];
+    if(h&&h.uv)cleanBrushAt(h.object,h.uv,26);}
+  else{camTheta-=dx*0.007;camPhi=Math.max(0.15,Math.min(Math.PI-0.15,camPhi-dy*0.006));}
+  if(tap&&Math.hypot(e.clientX-tap.x,e.clientY-tap.y)>10)tap=null;
+});
+function up(e){pointers.delete(e.pointerId);pinch=0;drag=null;
+  if(tap&&performance.now()-tap.t<400&&tool==='screw'){
+    ray.setFromCamera(ndc(e),camera);const h=ray.intersectObjects(allMeshes())[0];
+    if(h){const p=h.object.userData.part;if(p&&p.isScrew){p.detached=!p.detached;p.flash=1;}}
+  }tap=null;}
+el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);
+el.addEventListener('wheel',e=>{e.preventDefault();camRT=Math.max(2.6,Math.min(7,camRT+Math.sign(e.deltaY)*0.4));},{passive:false});
+
+/* 후처리 */
+if(THREE.EffectComposer&&THREE.UnrealBloomPass){
+  composer=new THREE.EffectComposer(renderer);
+  composer.addPass(new THREE.RenderPass(scene,camera));
+  const bloom=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.32,0.6,0.9);
+  composer.addPass(bloom);composer.setSize(innerWidth,innerHeight);
+}
+
+const clock=new THREE.Clock();const sm=t=>t*t*(3-2*t);
+function loop(){
+  requestAnimationFrame(loop);const dt=Math.min(0.05,clock.getDelta());
+  for(const p of parts){
+    const tgt=p.detached?1:0;
+    if(p.t!==tgt){p.t+=(tgt>p.t?1:-1)*dt*2.6;p.t=Math.max(0,Math.min(1,p.t));
+      const s=sm(p.t);p.group.position.lerpVectors(p.home,p.home.clone().add(p.out),s);
+      if(p.isScrew)p.group.rotateY(dt*8*(tgt?1:-1));}
+    if(p.flash>0){p.flash=Math.max(0,p.flash-dt*3);
+      p.meshes.forEach(m=>m.material.emissive&&m.material.emissive.setRGB(0.3*p.flash,0.28*p.flash,0.1*p.flash));}
+  }
+  camR+=(camRT-camR)*Math.min(1,dt*8);place();
+  root.rotation.y+=dt*0.06;
+  if(composer)composer.render();else renderer.render(scene,camera);
+}
+loop();
+requestAnimationFrame(()=>{const l=$('#loading');l.style.opacity=0;setTimeout(()=>l.remove(),500);});
+</script>
+</body>
+</html>
