@@ -265,7 +265,7 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
 <div id="hub" class="screen">
   <div class="scr-top">
     <div class="scr-title">수 장 고<span>ARCHIVE</span></div>
-    <button class="scr-btn" id="toCodex">도감</button>
+    <button class="scr-btn" id="toCodex">도감 ›</button>
   </div>
   <div class="hub-grid" id="hubGrid"></div>
   <div class="scr-note">유물을 선택해 보존처리대로 이동합니다</div>
@@ -618,6 +618,7 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name,wrap,posMap){
     sample(){ return _cntAvg(); },
     applyCavityInit(){ seed(); },
     reset(){ seed(); this.done=false; this.pct=0; this.dirtyStat=true; },
+    finishClean(){ for(let i=0;i<dirt.length;i++){ dirt[i]=0; const b=i*4; amt[b]=amt[b+1]=amt[b+2]=amt[b+3]=0; } this._amtDirty=true; this.remain=0; this.pct=100; },  // 복원 완료 → 완전히 깨끗
     serialize(){ const out=new Uint8Array(dirt.length); for(let i=0;i<dirt.length;i++) out[i]=(dirt[i]*255)|0; return out; },
     restore(arr){ if(!arr||arr.length!==dirt.length) return false;      // 저장된 오염 상태 복원(이어하기)
       for(let i=0;i<dirt.length;i++){
@@ -872,8 +873,7 @@ function startGame(id){
     if(active&&active!==t) active.group.visible=false;
     active=t; curArtifact=id; t.group.visible=true;
     disposeOthers(id);                                          // 이전 유물 GPU 메모리 해제(과부하 방지)
-    if(restored[id]){ clearDirt(id); t.reset(); }                    // 완료 유물 재입장 → 새로 시작
-    // 그 외에는 저장/진행 상태 그대로 이어하기 (reset 안 함)
+    // 저장/진행 상태 그대로 이어하기(완료 유물은 깨끗한 상태 유지). 새로 하려면 '다시 복원' 버튼.
     t.group.rotation.y=0;
     goto('game');
     camTheta=0.5; camPhi=1.12; camRTarget=3.5; camR=3.5; camTargetGoal.set(0,0.15,0); camTarget.set(0,0.15,0);
@@ -894,7 +894,7 @@ function showFinish(){
 }
 $('#toCodex').onclick=()=>goto('codex');
 $('#codexBack').onclick=()=>goto('hub');
-$('#finReplay').onclick=()=>startGame(curArtifact);
+$('#finReplay').onclick=()=>{ const id=curArtifact; clearDirt(id); const t=targets[id]; if(t) t.reset(); startGame(id); };  // 다시 복원 → 더러운 상태로 재시작
 $('#finHome').onclick=()=>goto('hub');
 $('#backHub').onclick=()=>{ Snd.stopClean(); goto('hub'); };
 
@@ -908,7 +908,9 @@ function updateProgressUI(){
     active.done=true;
     restored[curArtifact]=true;
     unlockNext(curArtifact);
-    clearDirt(curArtifact); saveProgress();                    // 완료: 진행 저장 정리 + 해금 저장
+    active.finishClean();                                       // 마지막 때까지 싹 → 100% 깨끗
+    $('#pct').textContent='100%'; $('#fill').style.width='100%';
+    saveDirt(curArtifact, active); saveProgress();              // 완료(깨끗) 상태 저장 → 재입장해도 깨끗
     $('#selBtn').classList.add('complete');
     Snd.win();
     setTimeout(()=>showFinish(), 850);
