@@ -357,8 +357,9 @@ const Snd=(function(){
 
 /* ---------- 렌더러 / 씬 ---------- */
 const stage=$('#stage');
-const renderer=new THREE.WebGLRenderer({antialias:true});
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.domElement.addEventListener('webglcontextlost',e=>{ e.preventDefault(); },false);  // 컨텍스트 유실 시 브라우저가 탭을 리로드하지 않도록
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
@@ -756,14 +757,27 @@ loadProgress();
 addEventListener('pagehide',()=>{ if(active) saveDirt(curArtifact,active); saveProgress(); });
 document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(active) saveDirt(curArtifact,active); saveProgress(); } });
 
-/* 첫 유물 프리로드 + 나머지 백그라운드 로드 */
+/* GPU 메모리 보호: 한 번에 한 유물만 GPU에 유지(나머지는 해제). 진행상황은 저장돼 있어 재로드해도 이어짐 */
+function disposeOthers(keepId){
+  for(const id in targets){
+    if(id===keepId) continue;
+    const t=targets[id]; if(!t||t===active) continue;
+    try{
+      scene.remove(t.group);
+      t.group.traverse(o=>{ if(o.isMesh){ o.geometry&&o.geometry.dispose();
+        const m=o.material; if(m){ ['map','normalMap','roughnessMap','metalnessMap','aoMap'].forEach(k=>{ if(m[k])m[k].dispose(); }); m.dispose(); } } });
+      t.grimeTex&&t.grimeTex.dispose(); t.amtTex&&t.amtTex.dispose();
+    }catch(e){}
+    delete targets[id];
+  }
+}
+/* 첫 유물만 로드(나머지는 선택 시 온디맨드 로드 → 메모리 절약) */
 loadArtifact('bapga', (t)=>{
   const sb=$('#startBtn');
   if(!t){ if(sb) sb.innerHTML='로드 실패 — 새로고침'; return; }
   active=t; curArtifact='bapga'; t.group.visible=true;
   updateProgressUI();
   if(sb){ sb.disabled=false; sb.innerHTML='입 장'; }
-  ARTIFACTS.filter(x=>x.playable&&x.id!=='bapga').forEach(x=>loadArtifact(x.id,()=>{}));
 });
 function goto(scr){
   if(scr!=='game' && active && document.body.classList.contains('ingame')){ saveDirt(curArtifact,active); saveProgress(); }  // 게임에서 나갈 때 진행 저장
@@ -811,6 +825,7 @@ function startGame(id){
     if(!t){ toast('유물을 불러오지 못했습니다'); return; }
     if(active&&active!==t) active.group.visible=false;
     active=t; curArtifact=id; t.group.visible=true;
+    disposeOthers(id);                                          // 이전 유물 GPU 메모리 해제(과부하 방지)
     if(restored[id]){ clearDirt(id); t.reset(); }                    // 완료 유물 재입장 → 새로 시작
     // 그 외에는 저장/진행 상태 그대로 이어하기 (reset 안 함)
     t.group.rotation.y=0;
