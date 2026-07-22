@@ -528,6 +528,9 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name,wrap,posMap){
   const amtTex=new THREE.DataTexture(amt,N,N,THREE.RGBAFormat);
   amtTex.needsUpdate=true; amtTex.flipY=false; amtTex.minFilter=THREE.LinearFilter; amtTex.magFilter=THREE.LinearFilter;
   if(wrap){ amtTex.wrapS=amtTex.wrapT=THREE.RepeatWrapping; }
+  // 실제 메시(레이캐스트로 닿는) 텍셀만 오염 대상으로 삼는다.
+  // AO 마스크는 UV 패딩(삼각형 없는 여백)까지 포함해 '영원히 못 닦는 때'를 만들었음.
+  if(posMap) maskData=posMap.val;
   let maskUsable=false;                                       // 마스크가 비정상(빈/과소)이면 무시
   if(maskData){ let c=0; for(let i=0;i<maskData.length;i++) if(maskData[i]) c++; maskUsable=c>200; }
   function seed(){                                            // 초기(더러운) 상태로 리셋 — 재복원용
