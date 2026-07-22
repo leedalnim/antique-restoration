@@ -399,50 +399,54 @@ const Snd=(function(){
   }
   /* ---- 잔잔한 배경 앰비언트(오음계 패드 + 저음 드론 + 리버브) ---- */
   let ambient=null, ambTimer=0, ambOn=false;
-  const AMB_VOL=0.19;
+  const AMB_VOL=0.5;
   const SCALE=[261.63,293.66,329.63,392.00,440.00,523.25,587.33,659.25]; // C D E G A C D E (펜타토닉)
   function makeReverb(a){
     const len=(a.sampleRate*2.8)|0, ir=a.createBuffer(2,len,a.sampleRate);
     for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.6);}
     const c=a.createConvolver(); c.buffer=ir; return c;
   }
-  function padNote(a,dest,freq,vol,dur){
-    const o1=a.createOscillator(),o2=a.createOscillator(),g=a.createGain(),f=a.createBiquadFilter();
-    o1.type='sine'; o2.type='triangle'; o1.frequency.value=freq; o2.frequency.value=freq; o2.detune.value=-5;
-    f.type='lowpass'; f.frequency.value=1100; f.Q.value=0.3; g.gain.value=0;
-    o1.connect(f); o2.connect(f); f.connect(g); g.connect(dest);
+  function pluck(a,dest,freq,vol,dur){                  // 가야금 뜯는 듯 밝고 맑은 음
+    const o=a.createOscillator(),o2=a.createOscillator(),g=a.createGain(),f=a.createBiquadFilter(),g2=a.createGain();
+    o.type='triangle'; o2.type='sine'; o.frequency.value=freq; o2.frequency.value=freq*2.01;
+    f.type='lowpass'; f.frequency.value=2900; f.Q.value=0.4; g.gain.value=0; g2.gain.value=0.28;
+    o.connect(f); o2.connect(g2); g2.connect(f); f.connect(g); g.connect(dest);
     const t=a.currentTime;
-    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+2.2);
-    g.gain.linearRampToValueAtTime(0.0001,t+dur);
-    o1.start(t); o2.start(t); o1.stop(t+dur+0.1); o2.stop(t+dur+0.1);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+0.014);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.start(t); o2.start(t); o.stop(t+dur+0.05); o2.stop(t+dur+0.05);
   }
   function startAmbient(){
     ambOn=true; if(ambient)return; const a=ctx();
     const master=a.createGain(); master.gain.value=0;
-    const rev=makeReverb(a), revG=a.createGain(); revG.gain.value=0.55;
+    const rev=makeReverb(a), revG=a.createGain(); revG.gain.value=0.3;
     master.connect(a.destination); master.connect(rev); rev.connect(revG); revG.connect(a.destination);
-    const d1=a.createOscillator(),d2=a.createOscillator(),dg=a.createGain(),df=a.createBiquadFilter();
-    d1.type='sine'; d2.type='sine'; d1.frequency.value=130.81; d2.frequency.value=131.2;
-    df.type='lowpass'; df.frequency.value=380; dg.gain.value=0.06;
-    d1.connect(df); d2.connect(df); df.connect(master); d1.start(); d2.start();
-    ambient={master,drone:[d1,d2]};
-    master.gain.setTargetAtTime(AMB_VOL,a.currentTime,3.0);
+    const p1=a.createOscillator(),pg=a.createGain(),pf=a.createBiquadFilter();  // 따뜻한 상위 패드(저음 드론 제거 → 안 무섭게)
+    p1.type='sine'; p1.frequency.value=261.63; pf.type='lowpass'; pf.frequency.value=680; pg.gain.value=0.018;
+    p1.connect(pf); pf.connect(pg); pg.connect(master); p1.start();
+    ambient={master,drone:[p1]};
+    master.gain.setTargetAtTime(AMB_VOL,a.currentTime,2.0);
+    const MEL=[392.00,440.00,523.25,587.33,659.25,783.99,880.00]; // G A C D E G A (밝은 오음계)
+    let idx=2;
     (function step(){
       if(!ambient)return;
-      padNote(a,master,SCALE[(Math.random()*SCALE.length)|0],0.06+Math.random()*0.04,5+Math.random()*3.5);
-      if(Math.random()<0.4) padNote(a,master,SCALE[3+((Math.random()*5)|0)]*2,0.028,4);
-      ambTimer=setTimeout(step,3200+Math.random()*3800);
+      idx=Math.max(0,Math.min(MEL.length-1, idx+((Math.random()*3)|0)-1));    // 살랑살랑 걷는 선율
+      pluck(a,master,MEL[idx],0.13+Math.random()*0.05,1.3+Math.random()*0.7);
+      if(Math.random()<0.35) pluck(a,master,MEL[Math.max(0,idx-2)],0.06,1.5);  // 은은한 화음
+      ambTimer=setTimeout(step,1300+Math.random()*1500);
     })();
   }
   function stopAmbient(){
     ambOn=false; if(!ambient)return; const a=ac; clearTimeout(ambTimer);
     try{ambient.master.gain.setTargetAtTime(0,a.currentTime,1.0);}catch(e){}
     const amb=ambient; ambient=null;
-    setTimeout(()=>{try{amb.drone[0].stop();amb.drone[1].stop();}catch(e){}},1400);
+    setTimeout(()=>{amb.drone.forEach(o=>{try{o.stop();}catch(e){}});},1400);
   }
   return {
     keepClean,stopClean,
     pop(){ping(300,0.12,'sine',0.16);},
+    tap(){ping(720,0.07,'triangle',0.085);},                                   // UI 클릭음
+    enter(){[523.25,659.25,783.99].forEach((f,i)=>setTimeout(()=>ping(f,0.4,'triangle',0.11),i*95));},  // 밝은 입장음
     win(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>ping(f,0.22,'triangle',0.13),i*110));},
     resume(){ctx();},
     startAmbient,stopAmbient,
@@ -715,7 +719,10 @@ function applyMaterial(mesh,target,assets){
         `#include <map_fragment>
          float amtG = texture2D(uAmt, vUv).r;
          vec3 grimeG = texture2D(uGrime, vUv).rgb;
-         diffuseColor.rgb = mix(diffuseColor.rgb, grimeG, amtG);`)
+         diffuseColor.rgb = mix(diffuseColor.rgb, grimeG, amtG);
+         // 세척솔로 지운 뒤 남는 잔여물 → 흰끼 도는 가루처럼 보이게(면봉 쓸 곳 잘 보이게)
+         float residue = smoothstep(0.05,0.28,amtG) * (1.0 - smoothstep(0.55,0.85,amtG));
+         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86,0.84,0.78), residue*0.55);`)
       .replace('#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
          roughnessFactor = mix(roughnessFactor, 0.97, amtG);`)
@@ -724,8 +731,8 @@ function applyMaterial(mesh,target,assets){
          metalnessFactor = mix(metalnessFactor, 0.0, amtG);`)
       .replace('#include <dithering_fragment>',
         `#include <dithering_fragment>
-         float _hl = uHeat * smoothstep(0.03,0.20,amtG);
-         gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(1.0,0.24,0.06), _hl);`);
+         float _hl = uHeat * smoothstep(0.02,0.18,amtG);
+         gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(1.0,0.10,0.72), _hl);   // 형광 핑크로 잔여 표시`);
   };
   const kk=++_matKey; mat.customProgramCacheKey=()=>'dirt'+kk;
   mesh.material=mat;
@@ -761,7 +768,10 @@ function loadArtifact(id, cb){
 
 /* ---------- 인트로 → 시작 ---------- */
 let introMode=true;
-$('#startBtn').onclick=()=>{ if($('#startBtn').disabled) return; Snd.resume(); Snd.startAmbient(); syncMusicBtn(); goto('hub'); };
+$('#startBtn').onclick=()=>{ if($('#startBtn').disabled) return; Snd.resume(); Snd.enter(); Snd.startAmbient(); syncMusicBtn(); goto('hub'); };
+/* 버튼·유물카드 클릭 시 부드러운 클릭음 */
+document.addEventListener('click',(e)=>{ const el=e.target.closest('button, .acard');
+  if(el && el.id!=='startBtn' && !el.disabled && !el.classList.contains('locked')) Snd.tap(); }, true);
 
 /* =========================================================
    상태 / UI
@@ -773,7 +783,7 @@ const TOOLS={
   brush:{wr:0.145,pn:5},
   swab:{wr:0.032,pn:2},
 };
-const isTouch=('ontouchstart' in window)&&navigator.maxTouchPoints>0;
+const isTouch = navigator.maxTouchPoints>0 || ('ontouchstart' in window) || (window.matchMedia && matchMedia('(pointer:coarse)').matches);
 const HINTS=isTouch?{
   rotate:'한 손가락으로 <b>회전</b> · 두 손가락으로 <b>확대·회전</b> · <b>두 번 탭</b>하면 그 부분 확대·가운데',
   clean:'유물을 <b>문지르면</b> 녹·때가 벗겨집니다 · <b>두 번 탭</b>으로 그 부분 확대 · 빈 곳 드래그로 회전',
@@ -783,7 +793,7 @@ const HINTS=isTouch?{
 };
 const FULL_HELP = isTouch
  ? '<span class="k">한 손가락</span> 드래그 — 회전<br><span class="k">두 손가락</span> — 확대 · 회전<br><span class="k">두 번 탭</span> — 그 부분 확대·가운데<br><span class="k">청소</span> 모드에서 문질러 세척<br><span class="k">도구</span> — 에어블로워(넓게) · 세척솔(때) · 면봉(구석)<br><span class="k">🔍</span> — 남은 때 표시<br><span class="k">↻</span> — 제자리로'
- : '<span class="k">좌드래그</span> — 회전 · <span class="k">휠</span> — 확대<br><span class="k">우클릭 드래그</span> — 이동<br><span class="k">더블클릭</span> — 그 부분 확대·가운데<br><span class="k">청소</span> 모드에서 문질러 세척<br><span class="k">도구</span> — 에어블로워 · 세척솔 · 면봉<br><span class="k">🔍</span> 남은 때 · <span class="k">↻</span> 제자리로';
+ : '<span class="k">좌드래그</span> — 회전 · <span class="k">휠</span> — 확대<br><span class="k">우클릭 드래그</span> — 이동<br><span class="k">더블클릭</span> — 그 부분 확대·가운데<br><span class="k">청소</span> 모드에서 문질러 세척<br>&nbsp;&nbsp;(청소 중엔 <span class="k">오브젝트 바깥(빈 곳) 드래그</span>로 회전)<br><span class="k">도구</span> — 에어블로워 · 세척솔 · 면봉<br><span class="k">🔍</span> 남은 때 · <span class="k">↻</span> 제자리로';
 function setHint(){ $('#hint').innerHTML=HINTS[mode]; showHint(); }
 let hintTimer=0;
 function showHint(){ $('#hint').classList.add('show'); clearTimeout(hintTimer); hintTimer=setTimeout(()=>$('#hint').classList.remove('show'),4200); }
