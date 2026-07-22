@@ -106,9 +106,30 @@ canvas{display:block;cursor:grab}
   font-size:9.5px;letter-spacing:.03em;color:#9a8256;pointer-events:none;text-shadow:0 1px 2px #000;max-width:52%}
 #loading{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
   background:var(--ink);color:#d8ad58;letter-spacing:.3em;font-size:13px;transition:opacity .5s}
+/* ---------- 인트로/타이틀 ---------- */
+#intro{position:fixed;inset:0;z-index:16;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:24px;transition:opacity .8s;
+  background:radial-gradient(120% 92% at 50% 40%, rgba(24,17,9,.5) 0%, rgba(12,8,4,.85) 58%, rgba(5,3,1,.96) 100%)}
+#intro.hide{opacity:0;pointer-events:none}
+#intro .eyebrow{font-size:10.5px;letter-spacing:.34em;color:#c9a45c;margin-bottom:16px}
+#intro h1{font-family:'Nanum Myeongjo',serif;font-weight:800;font-size:33px;letter-spacing:.05em;
+  color:var(--brass-bright);text-shadow:0 3px 14px rgba(0,0,0,.85)}
+#intro .sub{font-size:12px;letter-spacing:.26em;color:#cfb98c;margin-top:8px}
+#intro .relic{margin-top:24px;font-size:14px;color:#efdcac;font-weight:700;
+  border-top:1px solid rgba(222,182,98,.28);border-bottom:1px solid rgba(222,182,98,.28);padding:9px 18px}
+#intro .premise{margin-top:16px;max-width:330px;font-size:13px;line-height:1.75;color:#d7c6a0}
+#intro .start{margin-top:32px;padding:14px 44px;border-radius:8px;border:2px solid #fff3d4;
+  background:linear-gradient(180deg,var(--gold-a),var(--gold-b));color:#241704;font-size:16px;font-weight:800;
+  letter-spacing:.08em;cursor:pointer;box-shadow:0 10px 28px rgba(0,0,0,.55);transition:transform .12s,opacity .3s;
+  font-family:'Nanum Myeongjo',serif}
+#intro .start:active{transform:scale(.96)}
+#intro .start[disabled]{opacity:.5;cursor:default;filter:grayscale(.5)}
+#intro .cred{margin-top:28px;font-size:10px;letter-spacing:.05em;color:#8f784f}
+#top,#dock,#sidebtns,#helpBtn,#credit{transition:opacity .5s}
+body.intro #top,body.intro #dock,body.intro #sidebtns,body.intro #helpBtn,body.intro #credit{opacity:0;pointer-events:none}
 </style>
 </head>
-<body>
+<body class="intro">
 <div id="stage"></div>
 
 <div id="top">
@@ -155,7 +176,16 @@ canvas{display:block;cursor:grab}
 
 <div id="credit">3D 데이터: 국가유산청 · 공공누리 제1유형(출처표시)</div>
 <div id="doneCard"><div class="card"><h2>✦ 복원 완료 ✦</h2><p id="doneName"></p></div></div>
-<div id="loading">공 방 준 비 중 …</div>
+
+<div id="intro">
+  <div class="eyebrow">ATELIER DE RESTAURATION</div>
+  <h1>골동품 복원 공방</h1>
+  <div class="sub">유물 보존처리실</div>
+  <div class="relic">금동미륵보살반가사유상 · 국보</div>
+  <div class="premise">천오백 년 동안 쌓인 흙과 녹을 도구로 벗겨내<br>본래의 금빛을 되찾아 주세요.</div>
+  <button class="start" id="startBtn" disabled>준비 중&hellip;</button>
+  <div class="cred">3D 데이터: 국가유산청 · 공공누리 제1유형(출처표시)</div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -485,12 +515,24 @@ loader.load('khs_buddha.glb',(gltf)=>{
   if(cavityData) active.applyCavityInit();
 
   updateProgressUI();
-  setHint();
-  const l=$('#loading'); if(l){l.style.opacity=0;setTimeout(()=>l.remove(),550);}
+  const sb=$('#startBtn'); if(sb){ sb.disabled=false; sb.innerHTML='복원 시작'; }
 },undefined,(err)=>{
   console.error('glb load failed',err);
-  const l=$('#loading'); if(l) l.textContent='모델 로드 실패 — 파일 경로를 확인하세요';
+  const sb=$('#startBtn'); if(sb) sb.innerHTML='로드 실패 — 새로고침';
 });
+
+/* ---------- 인트로 → 시작 ---------- */
+let introMode=true;
+$('#startBtn').onclick=()=>{
+  if($('#startBtn').disabled) return;
+  Snd.resume();                 // 첫 제스처로 오디오 잠금 해제
+  introMode=false;
+  document.body.classList.remove('intro');
+  if(active) active.group.rotation.y=0;
+  const iv=$('#intro'); iv.classList.add('hide');
+  setTimeout(()=>{ iv.style.display='none'; }, 850);
+  setHint();
+};
 
 /* =========================================================
    상태 / UI
@@ -839,6 +881,7 @@ const clock=new THREE.Clock();
 function animate(){
   requestAnimationFrame(animate);
   const dt=Math.min(0.05,clock.getDelta());
+  if(introMode&&active) active.group.rotation.y += dt*0.28;   // 인트로: 유물 천천히 회전
   if(dirtUniforms) dirtUniforms.uHeat.value = heat?(0.35+0.35*Math.sin(performance.now()*0.005)):0;
   if(active&&active._amtDirty){active.amtTex.needsUpdate=true;active._amtDirty=false;}
   scrubPulse=Math.max(0,scrubPulse-dt*3.5);
