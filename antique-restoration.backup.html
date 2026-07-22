@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>골동품 복원 공방</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0f0b07;
+  --parch:#ece0bf;           /* 비선택 버튼: 양피지 */
+  --parch-line:#7a5a28;
+  --parch-text:#38240e;
+  --gold-a:#f6d27c; --gold-b:#bf8c34;
+  --brass-bright:#f2d492;
+  --paper:#f4e9cf;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none}
+button{appearance:none;-webkit-appearance:none;font:inherit}
+html,body{position:fixed;inset:0;width:100%;height:100%;overflow:hidden;
+  overscroll-behavior:none;touch-action:none;background:var(--ink)}
+body{font-family:'Gowun Batang',serif;color:var(--paper);
+  background:radial-gradient(120% 90% at 50% 18%, #2c2013 0%, #17110a 52%, #0a0704 100%)}
+#stage{position:fixed;inset:0;touch-action:none}
+canvas{display:block;cursor:grab}
+/* ---------- 상단 ---------- */
+/* ---------- 상단 ---------- */
+#top{position:fixed;top:0;left:0;right:0;padding:calc(9px + env(safe-area-inset-top)) 12px 0;
+  display:flex;align-items:center;gap:10px;pointer-events:none;z-index:5}
+#title{display:flex;flex-direction:column;text-shadow:0 2px 4px rgba(0,0,0,.8);pointer-events:none}
+#title h1{font-family:'Nanum Myeongjo',serif;font-weight:800;font-size:16px;letter-spacing:.08em;color:var(--brass-bright);white-space:nowrap}
+#title span{font-size:8.5px;letter-spacing:.22em;color:#cfb98c}
+#spacer{flex:1}
+/* 유물 선택 드롭다운 */
+#selectWrap{position:relative;pointer-events:auto}
+#selBtn{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:5px;
+  border:2px solid var(--parch-line);background:var(--parch);color:var(--parch-text);
+  font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.55);min-width:150px}
+#selBtn .em{font-size:17px}
+#selBtn .nm{flex:1;text-align:left}
+#selBtn .chev{font-size:11px;opacity:.7}
+#selBtn .mini{width:16px;height:16px;border-radius:50%;background:#3f6b3a;border:1px solid #b8e2a8;
+  color:#eaffe2;font-size:10px;line-height:15px;text-align:center;display:none}
+#selBtn.complete .mini{display:block}
+#selList{position:absolute;top:calc(100% + 6px);right:0;min-width:210px;background:rgba(20,14,8,.97);
+  border:2px solid var(--parch-line);border-radius:6px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.6);
+  display:none;flex-direction:column}
+#selList.open{display:flex}
+.selItem{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;
+  color:var(--paper);font-size:14px;font-weight:700;border-bottom:1px solid rgba(222,182,98,.16)}
+.selItem:last-child{border-bottom:0}
+.selItem .em{font-size:19px}
+.selItem .nm{flex:1}
+.selItem .st{font-size:12px;font-weight:400;color:#b39b6e}
+.selItem.on{background:linear-gradient(90deg,rgba(242,212,146,.22),transparent)}
+.selItem.done .st{color:#8fd28a;font-weight:700}
+.selItem.done .nm::after{content:' ✓';color:#8fd28a}
+/* ---------- 하단: 한 줄 컴팩트 바 ---------- */
+#dock{position:fixed;left:0;right:0;bottom:0;z-index:5;
+  padding:0 10px calc(10px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;gap:8px;pointer-events:none}
+#bar2{display:flex;align-items:stretch;gap:8px;pointer-events:auto}
+#modes{display:flex;border-radius:6px;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,.55);
+  border:2px solid var(--parch-line)}
+.mode{padding:0 14px;font-size:14px;font-weight:700;color:var(--parch-text);background:var(--parch);
+  cursor:pointer;display:flex;align-items:center;gap:5px;border-right:1px solid rgba(107,78,34,.45);min-height:52px}
+.mode:last-child{border-right:0}
+.mode.on{background:linear-gradient(180deg,var(--gold-a),var(--gold-b));color:#1d1204}
+/* 현재 도구 버튼(청소 모드에서만 표시) */
+#toolBtn{display:none;align-items:center;gap:8px;padding:0 14px;border-radius:6px;
+  border:2px solid var(--parch-line);background:var(--parch);color:var(--parch-text);
+  font-size:14px;font-weight:700;cursor:pointer;min-height:52px;box-shadow:0 3px 10px rgba(0,0,0,.55)}
+#toolBtn.show{display:flex}
+#toolBtn .em{font-size:20px}
+#toolBtn .chev{font-size:10px;opacity:.6}
+/* 진행 명판(컴팩트) */
+#plaque{flex:1;background:linear-gradient(180deg,#4a3819,#281c0d);border:2px solid rgba(222,182,98,.55);
+  border-radius:6px;padding:6px 12px 7px;box-shadow:inset 0 1px 0 rgba(242,212,146,.25),0 3px 10px rgba(0,0,0,.5);
+  min-width:96px;display:flex;flex-direction:column;justify-content:center}
+#plaque .row{display:flex;justify-content:space-between;align-items:baseline}
+#plaque .label{font-size:9.5px;letter-spacing:.14em;color:#e2cd9c;font-weight:700}
+#plaque .pct{font-family:'Nanum Myeongjo',serif;font-weight:800;font-size:16px;color:var(--brass-bright)}
+#bar{margin-top:4px;height:6px;border-radius:3px;background:rgba(0,0,0,.6);overflow:hidden;
+  border:1px solid rgba(222,182,98,.35)}
+#fill{height:100%;width:0%;background:linear-gradient(90deg,#9a7530,#f2d492);transition:width .35s}
+/* 도구 팝오버(선택 즉시 닫힘) */
+#toolPop{position:fixed;left:10px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:6;
+  display:none;flex-direction:column;gap:6px;pointer-events:auto}
+#toolPop.open{display:flex;animation:rise .18s ease}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.tool{display:flex;align-items:center;gap:10px;min-width:190px;padding:11px 13px;
+  border-radius:6px;border:2px solid var(--parch-line);background:rgba(236,224,191,.98);color:var(--parch-text);
+  font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.tool .em{font-size:22px}
+.tool .txt{display:flex;flex-direction:column;line-height:1.2;text-align:left}
+.tool small{color:#6b5330;font-size:10.5px;font-weight:400}
+.tool.on{background:linear-gradient(180deg,var(--gold-a),var(--gold-b));border-color:#fff3d4}
+.tool.on small{color:#4d3810}
+/* 도움말 ? 버튼 + 중앙 설명 */
+#helpBtn{position:fixed;left:12px;top:calc(58px + env(safe-area-inset-top));z-index:5;pointer-events:auto;
+  width:34px;height:34px;border-radius:50%;border:2px solid var(--parch-line);background:var(--parch);
+  color:var(--parch-text);font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.5)}
+#hint{position:fixed;left:50%;top:16%;transform:translateX(-50%);z-index:6;
+  max-width:90%;text-align:center;font-size:13px;line-height:1.55;color:#f0e4c8;pointer-events:none;
+  background:rgba(6,4,2,.92);border:1px solid rgba(222,182,98,.45);border-radius:6px;padding:9px 16px;
+  box-shadow:0 6px 20px rgba(0,0,0,.55);opacity:0;transition:opacity .4s}
+#hint.show{opacity:1}
+#hint b{color:var(--brass-bright);font-weight:700}
+/* 우측 세로 컨트롤 */
+#sidebtns{position:fixed;right:10px;top:50%;transform:translateY(-50%);z-index:5;
+  display:flex;flex-direction:column;gap:8px}
+.sbtn{width:46px;height:46px;border-radius:50%;border:2px solid var(--parch-line);
+  background:var(--parch);color:var(--parch-text);font-size:22px;font-weight:700;line-height:1;
+  cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;
+  transition:transform .1s, background .15s}
+.sbtn.on{background:linear-gradient(180deg,var(--gold-a),var(--gold-b));border-color:#fff3d4}
+.sbtn:active{transform:scale(.9)}
+#resetBtn{font-size:25px}
+/* 토스트 */
+#toast{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%) scale(.9);z-index:8;
+  background:rgba(70,14,10,.94);color:#ffe2d6;border:1.5px solid #d88a72;border-radius:6px;
+  padding:11px 20px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;
+  transition:opacity .2s, transform .2s;box-shadow:0 8px 24px rgba(0,0,0,.6)}
+#toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+/* 완료 배지 */
+#doneCard{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9;pointer-events:none}
+#doneCard.show{display:flex}
+#doneCard .card{background:linear-gradient(180deg,#f4e6c0,#cfa95e);color:#241704;border:2px solid #fff3d4;
+  border-radius:5px;padding:22px 36px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.65);
+  animation:pop .55s cubic-bezier(.2,1.4,.4,1)}
+#doneCard h2{font-family:'Nanum Myeongjo',serif;font-weight:800;font-size:22px;letter-spacing:.1em}
+#doneCard p{margin-top:6px;font-size:13px}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+#loading{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+  background:var(--ink);color:#d8ad58;letter-spacing:.3em;font-size:13px;transition:opacity .5s}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+
+<div id="top">
+  <div id="title"><h1>골동품 복원 공방</h1><span>ATELIER DE RESTAURATION</span></div>
+  <div id="spacer"></div>
+  <div id="selectWrap">
+    <button id="selBtn">
+      <span class="em" id="selEm">🕰️</span>
+      <span class="nm" id="selNm">회중시계</span>
+      <span class="mini">✓</span>
+      <span class="chev">▼</span>
+    </button>
+    <div id="selList"></div>
+  </div>
+</div>
+
+<button id="helpBtn" aria-label="도움말">?</button>
+<div id="hint"></div>
+
+<div id="dock">
+  <div id="bar2">
+    <div id="modes">
+      <button class="mode on" data-mode="rotate">🔄 회전</button>
+      <button class="mode" data-mode="clean">🧽 청소</button>
+      <button class="mode" data-mode="explode">🔧 분해</button>
+    </div>
+    <button id="toolBtn"><span class="em" id="toolBtnEm">🌬️</span><span id="toolBtnNm">블로워</span><span class="chev">▲</span></button>
+    <div id="plaque">
+      <div class="row"><span class="label">복원</span><span class="pct" id="pct">0%</span></div>
+      <div id="bar"><div id="fill"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="toolPop">
+  <button class="tool on" data-tool="blow"><span class="em">🌬️</span><span class="txt">에어블로워<small>모래를 넓게 날림</small></span></button>
+  <button class="tool" data-tool="brush"><span class="em">🖌️</span><span class="txt">세척솔<small>먼지까지 쓸어냄</small></span></button>
+  <button class="tool" data-tool="swab"><span class="em">🧼</span><span class="txt">면봉<small>좁은 틈만 콕콕</small></span></button>
+</div>
+
+<div id="toast"></div>
+
+<div id="sidebtns">
+  <button class="sbtn" id="zoomIn" aria-label="확대">＋</button>
+  <button class="sbtn" id="zoomOut" aria-label="축소">－</button>
+  <button class="sbtn" id="heatBtn" aria-label="오염표시">🔍</button>
+  <button class="sbtn" id="resetBtn" aria-label="제자리">⟲</button>
+</div>
+
+<div id="doneCard"><div class="card"><h2>✦ 복원 완료 ✦</h2><p id="doneName"></p></div></div>
+<div id="loading">공 방 준 비 중 …</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script>
+'use strict';
+/* =========================================================
+   골동품 복원 공방 v3
+   · 원통 UV 분리(캡/옆면) → 닦지 않은 면이 같이 닦이는 문제 해결
+   · 청소 모드: 빈 곳 드래그 or 두 손가락 드래그로 회전
+   · 🙃 뒤집기 → 바닥면 세척 가능
+   · 🔩 나사 잠금: 나사를 풀어야 뚜껑/기계부 분리
+========================================================= */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+
+['touchmove','gesturestart','gesturechange','gestureend'].forEach(ev=>
+  document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('dblclick',e=>e.preventDefault());
+
+/* =========================================================
+   사운드 — 도구별 세척음(WebAudio 실시간 합성, 파일 불필요)
+   · 블로워: 공기 쉬익(하이패스 노이즈)
+   · 세척솔: 사각사각(밴드패스 노이즈, 살짝 낮게)
+   · 면봉: 뽀득(짧고 좁은 밴드)
+   · 나사/뒤집기: 톤 효과음
+========================================================= */
+const Snd=(function(){
+  let ac=null, noiseBuf=null, cleanNode=null;
+  function ctx(){
+    if(!ac){
+      ac=new (window.AudioContext||window.webkitAudioContext)();
+      const len=ac.sampleRate*1.2, b=ac.createBuffer(1,len,ac.sampleRate), d=b.getChannelData(0);
+      for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+      noiseBuf=b;
+    }
+    if(ac.state==='suspended')ac.resume();
+    return ac;
+  }
+  const PROF={
+    blow:{type:'highpass',freq:2600,q:0.7,gain:0.16},
+    brush:{type:'bandpass',freq:1500,q:1.1,gain:0.2},
+    swab:{type:'bandpass',freq:2400,q:3.5,gain:0.16},
+  };
+  /* 문지르는 동안 지속되는 루프 노드 — start/keep/stop */
+  function ensureClean(tool){
+    const a=ctx(), p=PROF[tool];
+    if(cleanNode&&cleanNode.tool===tool)return cleanNode;
+    stopClean();
+    const src=a.createBufferSource(); src.buffer=noiseBuf; src.loop=true;
+    const filt=a.createBiquadFilter(); filt.type=p.type; filt.frequency.value=p.freq; filt.Q.value=p.q;
+    const g=a.createGain(); g.gain.value=0;
+    src.connect(filt); filt.connect(g); g.connect(a.destination);
+    src.start();
+    cleanNode={src,filt,g,tool,base:p.gain};
+    return cleanNode;
+  }
+  function keepClean(tool,intensity){
+    const n=ensureClean(tool), a=ctx();
+    /* 문지르는 속도에 따라 볼륨·필터 살짝 흔들어 사각사각한 질감 */
+    const target=n.base*Math.min(1,0.3+intensity);
+    n.g.gain.setTargetAtTime(target,a.currentTime,0.03);
+    n.filt.frequency.setTargetAtTime(PROF[tool].freq*(0.85+Math.random()*0.35),a.currentTime,0.04);
+  }
+  function stopClean(){
+    if(!cleanNode)return;
+    const a=ac, n=cleanNode; cleanNode=null;
+    try{n.g.gain.setTargetAtTime(0,a.currentTime,0.05);
+      setTimeout(()=>{try{n.src.stop();}catch(e){}},180);}catch(e){}
+  }
+  function ping(freq,dur,type,vol){
+    const a=ctx();
+    const o=a.createOscillator(), g=a.createGain();
+    o.type=type||'triangle'; o.frequency.value=freq;
+    g.gain.value=0; o.connect(g); g.connect(a.destination);
+    const t=a.currentTime;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol||0.14,t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+(dur||0.15));
+    o.start(t); o.stop(t+(dur||0.15)+0.02);
+  }
+  return {
+    keepClean,stopClean,
+    screw(){ping(520,0.09,'square',0.1);setTimeout(()=>ping(660,0.08,'square',0.09),70);},
+    tighten(){ping(660,0.08,'square',0.09);setTimeout(()=>ping(520,0.09,'square',0.1),70);},
+    pop(){ping(300,0.12,'sine',0.16);},
+    flip(){ping(240,0.18,'sine',0.14);setTimeout(()=>ping(360,0.14,'sine',0.12),90);},
+    win(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>ping(f,0.22,'triangle',0.13),i*110));},
+    resume(){ctx();},
+  };
+})();
+
+/* ---------- 렌더러 / 씬 ---------- */
+const stage=$('#stage');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.05;
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+stage.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(46,innerWidth/innerHeight,0.05,60);
+const camTarget=new THREE.Vector3(0,0.55,0);
+let camR=3.3, camTheta=0.5, camPhi=1.12;
+function placeCamera(){
+  camera.position.set(
+    camTarget.x+camR*Math.sin(camPhi)*Math.sin(camTheta),
+    camTarget.y+camR*Math.cos(camPhi),
+    camTarget.z+camR*Math.sin(camPhi)*Math.cos(camTheta));
+  camera.lookAt(camTarget);
+}
+placeCamera();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+
+/* 조명 — 그림자를 드리우는 스튜디오 3점 조명 */
+scene.add(new THREE.HemisphereLight(0xffe9c8,0x1c130a,0.35));
+const key=new THREE.DirectionalLight(0xfff1d6,1.35);
+key.position.set(2.6,4.2,2.2); key.castShadow=true;
+key.shadow.mapSize.set(2048,2048);
+key.shadow.camera.near=0.5; key.shadow.camera.far=14;
+key.shadow.camera.left=-3; key.shadow.camera.right=3;
+key.shadow.camera.top=3; key.shadow.camera.bottom=-3;
+key.shadow.bias=-0.0006; key.shadow.radius=4;
+scene.add(key);
+const rimL=new THREE.DirectionalLight(0xd8b06a,0.7); rimL.position.set(-3,2,-2.5); scene.add(rimL);
+const under=new THREE.DirectionalLight(0xcaa96a,0.35); under.position.set(0,-3,1); scene.add(under);
+const spot=new THREE.SpotLight(0xfff5dc,1.1,22,Math.PI/5,0.5,1);
+spot.position.set(0.6,5,1.8); spot.target.position.set(0,0.4,0);
+spot.castShadow=true; spot.shadow.mapSize.set(1024,1024); spot.shadow.bias=-0.0008;
+scene.add(spot); scene.add(spot.target);
+const fillL=new THREE.PointLight(0xffe0b0,0.3,12); fillL.position.set(0,1.2,3.2); scene.add(fillL);
+
+/* IBL 환경 — 스튜디오 그라데이션을 PMREM으로 굽는다 → 금속 반사가 실감 */
+(function makeEnvIBL(){
+  const S=256;
+  const c=document.createElement('canvas'); c.width=S; c.height=S;
+  const g=c.getContext('2d');
+  // 위=밝은 천장광, 중간=따뜻한 벽, 아래=어두운 바닥
+  const gr=g.createLinearGradient(0,0,0,S);
+  gr.addColorStop(0.0,'#fff7e6');
+  gr.addColorStop(0.32,'#e9cf9c');
+  gr.addColorStop(0.52,'#8c7048');
+  gr.addColorStop(0.75,'#2e2214');
+  gr.addColorStop(1.0,'#0a0705');
+  g.fillStyle=gr; g.fillRect(0,0,S,S);
+  // 부드러운 창문 하이라이트 2개(반사에 하이라이트 스트릭 생성)
+  const soft=(x,y,w,h,a)=>{const rg=g.createRadialGradient(x,y,0,x,y,Math.max(w,h));
+    rg.addColorStop(0,`rgba(255,250,235,${a})`);rg.addColorStop(1,'rgba(255,250,235,0)');
+    g.fillStyle=rg;g.save();g.translate(x,y);g.scale(w/Math.max(w,h),h/Math.max(w,h));
+    g.beginPath();g.arc(0,0,Math.max(w,h),0,7);g.fill();g.restore();};
+  soft(S*0.3,S*0.2,S*0.28,S*0.12,0.9);
+  soft(S*0.72,S*0.16,S*0.2,S*0.1,0.7);
+  soft(S*0.5,S*0.42,S*0.5,S*0.06,0.35);
+  const tex=new THREE.CanvasTexture(c);
+  tex.mapping=THREE.EquirectangularReflectionMapping;
+  tex.encoding=THREE.sRGBEncoding;
+  const pmrem=new THREE.PMREMGenerator(renderer);
+  pmrem.compileEquirectangularShader();
+  const env=pmrem.fromEquirectangular(tex).texture;
+  scene.environment=env;
+  tex.dispose(); pmrem.dispose();
+})();
+
+/* 받침대 없음 — 유물은 허공에 떠 있음. 아래쪽 은은한 후광만 추가 */
+(function halo(){
+  const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d');
+  const gr=g.createRadialGradient(64,64,0,64,64,64);
+  gr.addColorStop(0,'rgba(210,170,96,0.28)'); gr.addColorStop(.6,'rgba(150,110,60,0.08)'); gr.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=gr; g.fillRect(0,0,128,128);
+  const tx=new THREE.CanvasTexture(c); tx.encoding=THREE.sRGBEncoding;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(3.4,3.4),
+    new THREE.MeshBasicMaterial({map:tx,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+  m.rotation.x=-Math.PI/2; m.position.y=-0.7; scene.add(m);
+})();
+
+/* =========================================================
+   UV 정리 유틸 — 캡과 옆면을 서로 다른 영역으로 분리
+   (같은 UV를 공유해서 '안 닦은 데가 닦이는' 문제의 원인)
+========================================================= */
+function packBoxUVs(geo){
+  const uv=geo.attributes.uv;
+  for(let f=0;f<6;f++){
+    const col=f%3,row=Math.floor(f/3);
+    for(let i=0;i<4;i++){
+      const k=f*4+i;
+      uv.setXY(k,(uv.getX(k)+col)/3,(uv.getY(k)+row)/2);
+    }
+  }
+  uv.needsUpdate=true;
+}
+function packCylUVs(geo){
+  const uv=geo.attributes.uv, n=geo.attributes.normal;
+  for(let i=0;i<uv.count;i++){
+    const ny=n.getY(i);
+    let u=uv.getX(i), v=uv.getY(i);
+    if(ny>0.9){u=u*0.5; v=v*0.5;}            // 윗면 캡 → 좌하 사분면
+    else if(ny<-0.9){u=0.5+u*0.5; v=v*0.5;}  // 아랫면 캡 → 우하 사분면
+    else{v=0.5+v*0.5;}                        // 옆면 → 상단 절반
+    uv.setXY(i,u,v);
+  }
+  uv.needsUpdate=true;
+}
+function cyl(rt,rb,h,seg){const g=new THREE.CylinderGeometry(rt,rb,h,seg||32);packCylUVs(g);return g;}
+
+/* =========================================================
+   오염 시스템 (albedo/bump/roughness/metalness 4중)
+========================================================= */
+function cnv(S){const c=document.createElement('canvas');c.width=c.height=S;return c;}
+/* 값 노이즈 기반 유기적 얼룩 — 원형 폴카닷이 아니라 번진 때처럼 */
+function fractalBlotch(g,S,cov,palette,baseAlpha){
+  // 저해상도 노이즈를 확대 → 부드러운 얼룩 영역
+  const N=16;
+  const nz=[];
+  for(let i=0;i<N*N;i++)nz.push(Math.random());
+  const smooth=(x,y)=>{
+    const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+    const a=nz[(yi%N)*N+(xi%N)], b=nz[(yi%N)*N+((xi+1)%N)];
+    const c=nz[((yi+1)%N)*N+(xi%N)], d=nz[((yi+1)%N)*N+((xi+1)%N)];
+    const u=xf*xf*(3-2*xf), v=yf*yf*(3-2*yf);
+    return a*(1-u)*(1-v)+b*u*(1-v)+c*(1-u)*v+d*u*v;
+  };
+  const img=g.getImageData(0,0,S,S), d=img.data;
+  const col=palette.map(c=>{const m=/#(..)(..)(..)/.exec(c);return[parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16)];});
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){
+    // 다중 옥타브
+    let n=smooth(x/S*6,y/S*6)*0.55+smooth(x/S*14,y/S*14)*0.3+smooth(x/S*32,y/S*32)*0.15;
+    n=Math.min(1,Math.max(0,(n-(1-cov)*0.55)*1.8));  // cov로 임계 조절
+    if(n<=0.02)continue;
+    const idx=(y*S+x)*4;
+    const c=col[(x*7+y*13)%col.length];
+    const a=Math.min(255,n*255*baseAlpha);
+    // 알파 블렌딩
+    const na=a/255;
+    d[idx]  =d[idx]*(1-na)+c[0]*na;
+    d[idx+1]=d[idx+1]*(1-na)+c[1]*na;
+    d[idx+2]=d[idx+2]*(1-na)+c[2]*na;
+    d[idx+3]=Math.min(255,d[idx+3]+a);
+  }
+  g.putImageData(img,0,0);
+}
+function drawSand(g,S,cov){
+  if(cov<=0)return;
+  if(cov>=0.9){g.fillStyle='rgba(190,155,102,0.9)';g.fillRect(0,0,S,S);}
+  // 유기적 모래 얼룩(옅음→짙음)
+  fractalBlotch(g,S,cov,['#c7a26c','#b28a50','#d6b981','#a2814f','#8f6f3f'],0.85);
+  // 굵은 알갱이(요철용): 밝은 정점+어두운 그림자
+  const lumps=Math.floor(140*cov);
+  for(let i=0;i<lumps;i++){
+    const x=Math.random()*S,y=Math.random()*S,r=1.2+Math.random()*3.5;
+    g.globalAlpha=0.45;
+    g.fillStyle='rgba(60,42,20,0.9)';
+    g.beginPath();g.arc(x+r*0.35,y+r*0.35,r,0,7);g.fill();
+    g.fillStyle='rgba(245,228,190,0.9)';
+    g.beginPath();g.arc(x-r*0.25,y-r*0.25,r*0.65,0,7);g.fill();
+  }
+  g.globalAlpha=1;
+  // 미세 스페클
+  for(let i=0;i<400*cov;i++){
+    g.fillStyle=Math.random()<0.5?'rgba(110,82,44,0.5)':'rgba(238,216,172,0.45)';
+    const r=0.6+Math.random()*1.4;
+    g.fillRect(Math.random()*S,Math.random()*S,r,r);
+  }
+}
+function drawDust(g,S,cov){
+  if(cov<=0)return;
+  fractalBlotch(g,S,cov,['#726a52','#5a5242','#847a5e','#4a4234'],0.6);
+  for(let i=0;i<260*cov;i++){
+    g.fillStyle='rgba(84,74,56,0.4)';
+    g.fillRect(Math.random()*S,Math.random()*S,1+Math.random(),1+Math.random());
+  }
+}
+class DirtSystem{
+  /* opt: {sand,dust,size,rough,metal, wrap:'full'|'half'|'none'} */
+  constructor(baseFn,opt={}){
+    const S=this.S=opt.size||256;
+    this.roughBase=opt.rough??0.5;
+    this.metalBase=opt.metal??0.0;
+    this.wrap=opt.wrap||'none';
+    this.base=cnv(S); baseFn(this.base.getContext('2d'),S);
+    this.sand=cnv(S); drawSand(this.sand.getContext('2d'),S,opt.sand??1);
+    this.dust=cnv(S); drawDust(this.dust.getContext('2d'),S,opt.dust??1);
+    this.lum=cnv(S);
+    this.disp=cnv(S); this.bumpC=cnv(S); this.roughC=cnv(S); this.metalC=cnv(S);
+    this.tex=new THREE.CanvasTexture(this.disp);
+    this.tex.encoding=THREE.sRGBEncoding; this.tex.anisotropy=4;
+    this.bumpTex=new THREE.CanvasTexture(this.bumpC);
+    this.roughTex=new THREE.CanvasTexture(this.roughC);
+    this.metalTex=new THREE.CanvasTexture(this.metalC);
+    this.needsComposite=true; this.composite();
+    this.initSum=Math.max(1,this.sample()); this.curSum=this.initSum; this.dirtyStat=false;
+  }
+  lumOf(src,tint){
+    const g=this.lum.getContext('2d');
+    g.globalCompositeOperation='source-over';
+    g.clearRect(0,0,this.S,this.S);
+    g.fillStyle=tint; g.fillRect(0,0,this.S,this.S);
+    g.globalCompositeOperation='destination-in';
+    g.drawImage(src,0,0);
+    g.globalCompositeOperation='source-over';
+    return this.lum;
+  }
+  composite(){
+    if(!this.needsComposite)return;
+    const S=this.S;
+    let g=this.disp.getContext('2d');
+    g.clearRect(0,0,S,S);
+    g.drawImage(this.base,0,0); g.drawImage(this.dust,0,0); g.drawImage(this.sand,0,0);
+    g=this.bumpC.getContext('2d');
+    g.globalAlpha=1; g.fillStyle='#6e6e6e'; g.fillRect(0,0,S,S);
+    try{g.filter='grayscale(1) contrast(1.2)';}catch(e){}
+    g.globalAlpha=0.32; g.drawImage(this.base,0,0);
+    g.globalAlpha=0.6; g.drawImage(this.sand,0,0);   // 알갱이 명암 그대로 → 볼록볼록
+    try{g.filter='none';}catch(e){}
+    g.globalAlpha=0.55; g.drawImage(this.lumOf(this.dust,'#b6b6b6'),0,0);
+    g.globalAlpha=0.9; g.drawImage(this.lumOf(this.sand,'#ffffff'),0,0);
+    g.globalAlpha=1;
+    g=this.roughC.getContext('2d');
+    const rv=Math.round(this.roughBase*255);
+    g.fillStyle=`rgb(${rv},${rv},${rv})`; g.fillRect(0,0,S,S);
+    g.globalAlpha=0.75; g.drawImage(this.lumOf(this.dust,'#dedede'),0,0);
+    g.globalAlpha=0.97; g.drawImage(this.lumOf(this.sand,'#fbfbfb'),0,0);
+    g.globalAlpha=1;
+    g=this.metalC.getContext('2d');
+    const mv=Math.round(this.metalBase*255);
+    g.fillStyle=`rgb(${mv},${mv},${mv})`; g.fillRect(0,0,S,S);
+    g.globalAlpha=0.85; g.drawImage(this.lumOf(this.dust,'#000000'),0,0);
+    g.globalAlpha=0.97; g.drawImage(this.lumOf(this.sand,'#000000'),0,0);
+    g.globalAlpha=1;
+    this.tex.needsUpdate=this.bumpTex.needsUpdate=this.roughTex.needsUpdate=this.metalTex.needsUpdate=true;
+    this.needsComposite=false;
+  }
+  sample(){
+    let s=0;
+    for(const c of [this.sand,this.dust]){
+      const d=c.getContext('2d').getImageData(0,0,this.S,this.S).data;
+      for(let i=3;i<d.length;i+=28) s+=d[i];
+    }
+    return s;
+  }
+  brush(u,v,r,sandS,dustS){
+    const S=this.S, x=u*S, y=(1-v)*S;
+    const wrapOK=this.wrap==='full'||(this.wrap==='half'&&y<S*0.5);
+    for(const [c,st] of [[this.sand,sandS],[this.dust,dustS]]){
+      if(st<=0)continue;
+      const g=c.getContext('2d');
+      g.globalCompositeOperation='destination-out';
+      const xs=[x];
+      if(wrapOK){ if(x<r)xs.push(x+S); if(x>S-r)xs.push(x-S); }
+      for(const xx of xs){
+        const gr=g.createRadialGradient(xx,y,0,xx,y,r);
+        gr.addColorStop(0,`rgba(0,0,0,${st})`);
+        gr.addColorStop(0.72,`rgba(0,0,0,${st})`);
+        gr.addColorStop(1,'rgba(0,0,0,0)');
+        g.fillStyle=gr; g.beginPath(); g.arc(xx,y,r,0,7); g.fill();
+      }
+      g.globalCompositeOperation='source-over';
+    }
+    this.needsComposite=true; this.dirtyStat=true;
+  }
+}
+
+/* ---------- 베이스 텍스처 페인터 ---------- */
+function engrave(g,cx,cy,R){
+  g.strokeStyle='rgba(70,48,12,.42)';g.lineWidth=1.5;
+  for(let r=R*.14;r<R;r+=R*.1){g.beginPath();g.arc(cx,cy,r,0,7);g.stroke();}
+  g.strokeStyle='rgba(255,240,200,.3)';g.lineWidth=1;
+  for(let r=R*.14+2;r<R;r+=R*.1){g.beginPath();g.arc(cx,cy,r,0,7);g.stroke();}
+  g.strokeStyle='rgba(70,48,12,.48)';g.lineWidth=2;
+  for(let i=0;i<20;i++){const a=i/20*Math.PI*2;
+    g.beginPath();g.moveTo(cx+Math.cos(a)*R*.28,cy+Math.sin(a)*R*.28);
+    g.lineTo(cx+Math.cos(a)*R*.94,cy+Math.sin(a)*R*.94);g.stroke();}
+}
+const P={
+  gold(g,S){const gr=g.createLinearGradient(0,0,0,S);gr.addColorStop(0,'#ecc873');gr.addColorStop(.5,'#c99e46');gr.addColorStop(1,'#8a672a');
+    g.fillStyle=gr;g.fillRect(0,0,S,S);
+    for(let i=0;i<80;i++){g.strokeStyle=Math.random()<.5?'rgba(255,243,205,.18)':'rgba(84,58,16,.2)';
+      const y=Math.random()*S;g.beginPath();g.moveTo(0,y);g.lineTo(S,y+(Math.random()*4-2));g.stroke();}},
+  /* 원통 UV 분리 규격: 상단 절반=옆면(밀링), 하단 두 사분면=캡(기요셰 각인) */
+  goldLid(g,S){P.gold(g,S);
+    g.strokeStyle='rgba(70,48,12,.45)';g.lineWidth=1.4;
+    for(let i=0;i<64;i++){const x=i*(S/64);
+      g.beginPath();g.moveTo(x,0);g.lineTo(x,S*.5);g.stroke();}
+    engrave(g,S*.25,S*.75,S*.22);
+    engrave(g,S*.75,S*.75,S*.22);},
+  goldBody(g,S){P.gold(g,S);
+    engrave(g,S*.25,S*.75,S*.2);
+    engrave(g,S*.75,S*.75,S*.2);},
+  brass(g,S){const gr=g.createLinearGradient(0,0,0,S);gr.addColorStop(0,'#d9b466');gr.addColorStop(1,'#755a24');
+    g.fillStyle=gr;g.fillRect(0,0,S,S);
+    for(let i=0;i<55;i++){g.strokeStyle='rgba(56,38,10,.2)';const y=Math.random()*S;
+      g.beginPath();g.moveTo(0,y);g.lineTo(S,y);g.stroke();}},
+  bronze(g,S){g.fillStyle='#4e3e26';g.fillRect(0,0,S,S);
+    for(let i=0;i<64;i++){g.fillStyle=`rgba(${86+Math.random()*34},${120+Math.random()*32},${94},${.2+Math.random()*.32})`;
+      g.beginPath();g.arc(Math.random()*S,Math.random()*S,5+Math.random()*24,0,7);g.fill();}
+    for(let i=0;i<55;i++){g.fillStyle='rgba(22,15,6,.32)';
+      g.beginPath();g.arc(Math.random()*S,Math.random()*S,2+Math.random()*8,0,7);g.fill();}},
+  bronzeBand(g,S){P.bronze(g,S);
+    const yc=S*.42;
+    g.fillStyle='rgba(20,14,5,.5)';g.fillRect(0,yc-S*.055,S,S*.11);
+    g.strokeStyle='#c9a45c';g.lineWidth=2.4;
+    const st=S/10;
+    for(let i=0;i<10;i++){const x=i*st;
+      g.beginPath();
+      g.moveTo(x+st*.1,yc+S*.035);g.lineTo(x+st*.1,yc-S*.035);g.lineTo(x+st*.7,yc-S*.035);
+      g.lineTo(x+st*.7,yc+S*.005);g.lineTo(x+st*.35,yc+S*.005);
+      g.stroke();}
+    g.strokeStyle='rgba(255,236,190,.3)';g.lineWidth=1;
+    g.beginPath();g.moveTo(0,yc-S*.055);g.lineTo(S,yc-S*.055);g.stroke();
+    g.beginPath();g.moveTo(0,yc+S*.055);g.lineTo(S,yc+S*.055);g.stroke();},
+  wood(g,S){const gr=g.createLinearGradient(0,0,S,0);gr.addColorStop(0,'#75502f');gr.addColorStop(.5,'#5c3c20');gr.addColorStop(1,'#75502f');
+    g.fillStyle=gr;g.fillRect(0,0,S,S);
+    for(let i=0;i<36;i++){g.strokeStyle='rgba(36,20,8,.4)';g.lineWidth=1+Math.random()*1.2;
+      const y=i*(S/36)+Math.random()*4;g.beginPath();g.moveTo(0,y);
+      g.bezierCurveTo(S*.3,y+7,S*.6,y-7,S,y+3);g.stroke();}
+    for(let i=0;i<10;i++){g.strokeStyle='rgba(255,225,170,.12)';g.lineWidth=2;
+      const y=Math.random()*S;g.beginPath();g.moveTo(0,y);g.bezierCurveTo(S*.4,y+5,S*.7,y-5,S,y);g.stroke();}},
+  woodInlay(g,S){P.wood(g,S);
+    g.strokeStyle='#d9b466';g.lineWidth=3;
+    g.strokeRect(S*.08,S*.08,S*.84,S*.84);
+    g.strokeStyle='rgba(30,18,6,.6)';g.lineWidth=1.5;
+    g.strokeRect(S*.11,S*.11,S*.78,S*.78);
+    g.fillStyle='#d9b466';
+    for(const [x,y] of [[.08,.08],[.92,.08],[.08,.92],[.92,.92]]){
+      g.beginPath();g.arc(S*x,S*y,S*.03,0,7);g.fill();}},
+  porcelain(g,S){g.fillStyle='#f4eedb';g.fillRect(0,0,S,S);
+    g.strokeStyle='rgba(150,140,115,.3)';g.lineWidth=.8;
+    for(let i=0;i<26;i++){
+      let x=Math.random()*S,y=Math.random()*S;
+      g.beginPath();g.moveTo(x,y);
+      for(let k=0;k<4;k++){x+=(Math.random()-.5)*S*.2;y+=(Math.random()-.5)*S*.2;g.lineTo(x,y);}
+      g.stroke();}
+    g.strokeStyle='#2c4c8e';g.lineWidth=3;
+    g.beginPath();g.moveTo(0,S*.16);g.lineTo(S,S*.16);g.stroke();
+    g.beginPath();g.moveTo(0,S*.84);g.lineTo(S,S*.84);g.stroke();
+    g.lineWidth=1.5;
+    for(let i=0;i<8;i++){const x=S*(i+0.5)/8;
+      g.beginPath();g.arc(x,S*.5,S*.055,0,7);g.stroke();
+      for(let p=0;p<5;p++){const a=p/5*Math.PI*2;
+        g.beginPath();g.arc(x+Math.cos(a)*S*.09,S*.5+Math.sin(a)*S*.09,S*.028,0,7);g.stroke();}}},
+  face(g,S){g.fillStyle='#f2ead4';g.fillRect(0,0,S,S);
+    const cx=S/2,cy=S/2,R=S*.44;
+    g.strokeStyle='#4a3a20';g.lineWidth=3;g.beginPath();g.arc(cx,cy,R,0,7);g.stroke();
+    g.fillStyle='#2c2418';g.font=`700 ${S*.085}px 'Nanum Myeongjo',serif`;g.textAlign='center';g.textBaseline='middle';
+    const nums=['XII','I','II','III','IIII','V','VI','VII','VIII','IX','X','XI'];
+    for(let i=0;i<12;i++){const a=i/12*Math.PI*2-Math.PI/2;
+      g.fillText(nums[i],cx+Math.cos(a)*R*.8,cy+Math.sin(a)*R*.8);}
+    g.strokeStyle='#2c2418';
+    for(let i=0;i<60;i++){const a=i/60*Math.PI*2;g.lineWidth=i%5?1:2.5;
+      const r1=i%5?R*.93:R*.9;
+      g.beginPath();g.moveTo(cx+Math.cos(a)*r1,cy+Math.sin(a)*r1);
+      g.lineTo(cx+Math.cos(a)*R*.97,cy+Math.sin(a)*R*.97);g.stroke();}
+    /* 3D 바늘이 따로 있으므로 다이얼엔 바늘을 그리지 않음. 중심핀만 */
+    g.fillStyle='#c69c46';g.beginPath();g.arc(cx,cy,S*.03,0,7);g.fill();},
+  gears(g,S){P.brass(g,S);
+    const gear=(x,y,r,teeth)=>{g.save();g.translate(x,y);
+      g.fillStyle='#8f6f30';
+      for(let i=0;i<teeth;i++){g.save();g.rotate(i/teeth*Math.PI*2);g.fillRect(-r*.08,-r*1.12,r*.16,r*.24);g.restore();}
+      g.beginPath();g.arc(0,0,r,0,7);g.fill();
+      g.fillStyle='#5c451c';g.beginPath();g.arc(0,0,r*.32,0,7);g.fill();
+      g.fillStyle='#e2c375';g.beginPath();g.arc(0,0,r*.12,0,7);g.fill();g.restore();};
+    gear(S*.36,S*.4,S*.16,12);gear(S*.62,S*.62,S*.12,10);gear(S*.66,S*.3,S*.08,8);
+    g.fillStyle='#3c2c10';
+    for(const [x,y] of [[.15,.15],[.85,.15],[.15,.85],[.85,.85]]){
+      g.beginPath();g.arc(S*x,S*y,S*.028,0,7);g.fill();}},
+  steel(g,S){const gr=g.createLinearGradient(0,0,0,S);gr.addColorStop(0,'#d2d2d4');gr.addColorStop(1,'#7a7a80');
+    g.fillStyle=gr;g.fillRect(0,0,S,S);
+    g.strokeStyle='rgba(38,38,44,.45)';
+    for(let i=0;i<18;i++){const x=i*(S/18);g.beginPath();g.moveTo(x,0);g.lineTo(x,S);g.stroke();}},
+  drum(g,S){P.brass(g,S);g.fillStyle='#33240b';
+    /* 핀은 옆면(UV 상단 절반 = 캔버스 y < S/2)에만 */
+    for(let r=0;r<5;r++)for(let c2=0;c2<14;c2++){
+      if(Math.random()<.4)continue;
+      g.beginPath();g.arc((c2+.5)*S/14,(r+.5)*S/10,S*.014,0,7);g.fill();}},
+  felt(g,S){g.fillStyle='#5d2028';g.fillRect(0,0,S,S);
+    for(let i=0;i<620;i++){g.fillStyle=Math.random()<.5?'rgba(122,50,60,.32)':'rgba(38,10,16,.32)';
+      g.fillRect(Math.random()*S,Math.random()*S,1.4,1.4);}},
+  ash(g,S){g.fillStyle='#b9b2a4';g.fillRect(0,0,S,S);
+    for(let i=0;i<900;i++){g.fillStyle=Math.random()<.5?'rgba(150,144,132,.5)':'rgba(90,84,74,.4)';
+      g.beginPath();g.arc(Math.random()*S,Math.random()*S,1+Math.random()*3,0,7);g.fill();}
+    /* 다 타고 남은 향꽂이 자국 */
+    for(let i=0;i<5;i++){g.fillStyle='rgba(60,54,46,.5)';
+      g.beginPath();g.arc(Math.random()*S,Math.random()*S,S*.02,0,7);g.fill();}},
+  porcelainIn(g,S){g.fillStyle='#e9e3d0';g.fillRect(0,0,S,S);
+    /* 안쪽 찻물 얼룩(다갈색 링) */
+    for(let i=0;i<4;i++){g.strokeStyle=`rgba(120,86,50,${.1+Math.random()*.14})`;g.lineWidth=2+Math.random()*4;
+      g.beginPath();g.arc(S/2,S/2,S*(.18+i*.09),0,7);g.stroke();}
+    for(let i=0;i<40;i++){g.fillStyle='rgba(150,120,80,.12)';
+      g.beginPath();g.arc(Math.random()*S,Math.random()*S,2+Math.random()*10,0,7);g.fill();}},
+  brassPlate(g,S){const gr=g.createLinearGradient(0,0,S,S);
+    gr.addColorStop(0,'#e6c477');gr.addColorStop(.5,'#b3893c');gr.addColorStop(1,'#d8b466');
+    g.fillStyle=gr;g.fillRect(0,0,S,S);
+    for(let i=0;i<40;i++){g.strokeStyle='rgba(70,48,14,.14)';const y=Math.random()*S;
+      g.beginPath();g.moveTo(0,y);g.lineTo(S,y);g.stroke();}},
+  /* 무브먼트 지판: 코트 드 제네브(물결 줄무늬) + 보석·나사 자국 */
+  movement(g,S){const gr=g.createLinearGradient(0,0,0,S);
+    gr.addColorStop(0,'#d8b978');gr.addColorStop(1,'#a8823a');
+    g.fillStyle=gr;g.fillRect(0,0,S,S);
+    for(let i=-2;i<18;i++){
+      g.save();g.translate(0,i*S/16);g.rotate(-0.12);
+      const bg=g.createLinearGradient(0,0,0,S/16);
+      bg.addColorStop(0,'rgba(255,240,200,.22)');bg.addColorStop(.5,'rgba(120,90,40,.12)');bg.addColorStop(1,'rgba(255,240,200,.18)');
+      g.fillStyle=bg;g.fillRect(-S*.2,0,S*1.4,S/16);g.restore();}
+    /* 보석 베어링(루비) 자국 */
+    for(const [x,y] of [[.3,.32],[.62,.28],[.5,.6],[.72,.66],[.36,.7]]){
+      g.fillStyle='#8a1f2a';g.beginPath();g.arc(S*x,S*y,S*.03,0,7);g.fill();
+      g.fillStyle='#c94b58';g.beginPath();g.arc(S*x-2,S*y-2,S*.014,0,7);g.fill();
+      g.fillStyle='#2a1c08';g.beginPath();g.arc(S*x,S*y,S*.008,0,7);g.fill();}
+    /* 나사 자리 */
+    g.fillStyle='#5c451c';
+    for(const [x,y] of [[.16,.16],[.84,.18],[.5,.86],[.2,.8]]){
+      g.beginPath();g.arc(S*x,S*y,S*.024,0,7);g.fill();}},
+  blued(g,S){const gr=g.createLinearGradient(0,0,0,S);
+    gr.addColorStop(0,'#3a5aa8');gr.addColorStop(.5,'#26407e');gr.addColorStop(1,'#1a2c58');
+    g.fillStyle=gr;g.fillRect(0,0,S,S);
+    for(let i=0;i<30;i++){g.strokeStyle='rgba(150,180,240,.18)';const y=Math.random()*S;
+      g.beginPath();g.moveTo(0,y);g.lineTo(S,y);g.stroke();}},
+  polished(g,S){const gr=g.createLinearGradient(0,0,0,S);
+    gr.addColorStop(0,'#e2e5ea');gr.addColorStop(.5,'#b8bcc4');gr.addColorStop(1,'#888d96');
+    g.fillStyle=gr;g.fillRect(0,0,S,S);
+    for(let i=0;i<24;i++){g.strokeStyle='rgba(60,64,72,.2)';const x=i*(S/24);
+      g.beginPath();g.moveTo(x,0);g.lineTo(x,S);g.stroke();}},
+};
+function woodWithFeltTop(g,S){
+  P.wood(g,S);
+  const fc=cnv(128); P.felt(fc.getContext('2d'),128);
+  g.drawImage(fc,(2/3)*S,S/2,S/3,S/2);
+}
+
+/* =========================================================
+   파트 / 유물 구성
+========================================================= */
+const raycaster=new THREE.Raycaster();
+const antiques={}; let active=null;
+const screwHeadMat=()=>new THREE.MeshStandardMaterial({color:0xc79a48,metalness:.85,roughness:.3});
+const screwSlotMat=()=>new THREE.MeshStandardMaterial({color:0x2a1c08,metalness:.6,roughness:.5});
+const matBrassGear=()=>new THREE.MeshStandardMaterial({color:0xd9b25a,metalness:.9,roughness:.28});
+const matSteel=()=>new THREE.MeshStandardMaterial({color:0xc9ccd2,metalness:.95,roughness:.22});
+const matBlueSteel=()=>new THREE.MeshStandardMaterial({color:0x2f4f8f,metalness:.9,roughness:.3});
+const matRuby=()=>new THREE.MeshStandardMaterial({color:0x9a1f2c,metalness:.2,roughness:.15,emissive:0x2a0006});
+const matGoldPlate=()=>new THREE.MeshStandardMaterial({color:0xcaa24a,metalness:.85,roughness:.3});
+
+function makePart(name,outPos,outRot){
+  return {name,group:new THREE.Group(),meshes:[],home:null,
+    out:new THREE.Vector3(...outPos),outRot:new THREE.Euler(...(outRot||[0,0,0])),
+    detached:false,t:0,flash:0,flashCol:null,locks:[],isScrew:false,host:null,requires:null};
+}
+function addMesh(ant,part,geo,baseFn,mat,dirtOpt){
+  const opt=dirtOpt||{};
+  if(opt.rough===undefined)opt.rough=mat.roughness??0.5;
+  if(opt.metal===undefined)opt.metal=mat.metalness??0.0;
+  const ds=new DirtSystem(baseFn,opt);
+  const material=new THREE.MeshStandardMaterial({
+    map:ds.tex, bumpMap:ds.bumpTex, bumpScale:0.06,
+    roughnessMap:ds.roughTex, roughness:1,
+    metalnessMap:ds.metalTex, metalness:1,
+    side:mat.side||THREE.FrontSide,
+  });
+  const m=new THREE.Mesh(geo,material);
+  m.castShadow=true; m.receiveShadow=true;
+  m.userData={ds,part};
+  part.meshes.push(m); part.group.add(m); ant.dss.push(ds);
+  return m;
+}
+function finishPart(ant,part,pos,rot){
+  part.group.position.set(...pos);
+  if(rot)part.group.rotation.set(...rot);
+  part.home=part.group.position.clone();
+  part.homeRot=part.group.rotation.clone();
+  ant.parts.push(part); ant.root.add(part.group);
+}
+/* 🔩 나사: host를 잠근다. 분해 모드에서 먼저 풀어야 host가 분리됨 */
+function addScrew(ant,host,pos,rot,outPos){
+  const s=makePart('나사',outPos,[0,Math.PI*6,0]); // 이동하며 6바퀴 회전
+  s.isScrew=true; s.host=host;
+  const head=new THREE.Mesh(cyl(0.06,0.06,0.04,16),screwHeadMat());
+  const slot=new THREE.Mesh(new THREE.BoxGeometry(0.085,0.014,0.02),screwSlotMat());
+  slot.position.y=0.024;
+  head.userData={part:s}; slot.userData={part:s};
+  s.group.add(head,slot); s.meshes.push(head,slot);
+  finishPart(ant,s,pos,rot);
+  host.locks.push(s);
+  return s;
+}
+function newAntique(id,name,em,hint,flipLift){
+  const a={id,name,em,hint,root:new THREE.Group(),parts:[],dss:[],done:false,pct:0,
+    flip:false,flipT:0,baseY:0,flipLift:flipLift||0.6};
+  antiques[id]=a; return a;
+}
+function lathe(pts,seg){return new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg||56);}
+/* 오염 없는 정밀 디테일 메시를 파트에 부착(기어·나사머리 등) */
+function detail(part,geo,mat){
+  const m=new THREE.Mesh(geo,mat);
+  m.castShadow=true; m.receiveShadow=true;
+  m.userData={part};
+  part.meshes.push(m); part.group.add(m);
+  return m;
+}
+/* 톱니바퀴 부품 지오메트리 반환 */
+function gearGeo(rOuter,teeth,thick,rInner){
+  const disk=new THREE.CylinderGeometry(rOuter*0.86,rOuter*0.86,thick,Math.max(14,teeth*2));
+  const toothGeo=new THREE.BoxGeometry(rOuter*0.16,thick,rOuter*0.28);
+  return {disk,toothGeo,teeth,rOuter,thick,rInner:rInner||rOuter*0.2};
+}
+/* 기어를 파트에 심기(디스크+이빨+축구멍 링) */
+function addGear(part,x,y,z,rOuter,teeth,thick,mat,axisMat){
+  const g=new THREE.Group();
+  const gg=gearGeo(rOuter,teeth,thick);
+  const disk=new THREE.Mesh(gg.disk,mat); disk.userData={part}; g.add(disk);
+  for(let i=0;i<teeth;i++){
+    const t=new THREE.Mesh(gg.toothGeo,mat);
+    const a=i/teeth*Math.PI*2;
+    t.position.set(Math.cos(a)*rOuter*0.82,0,Math.sin(a)*rOuter*0.82);
+    t.rotation.y=-a; t.userData={part}; g.add(t);
+  }
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(gg.rInner,gg.rInner,thick*1.4,12),axisMat||mat);
+  hub.userData={part}; g.add(hub);
+  g.position.set(x,y,z);
+  g.rotation.x=Math.PI/2;      // 축을 세워 시계 평면에 눕힘
+  part.group.add(g); part.meshes.push(...g.children);
+  return g;
+}
+
+/* ---------- ① 회중시계 ----------
+   Y 레이아웃(로컬):  다이얼면 +0.25 (앞) ┃ 케이스 옆벽 -0.25~+0.25 ┃ 뒷뚜껑 -0.29 (뒤)
+   앞: 3D 바늘(시/분/초) — 개별 분리
+   뒤: 뒷뚜껑(나사2) → 무브먼트 지판(나사3) 순서로 분해
+--------------------------------------------------------- */
+(function(){
+  const a=newAntique('watch','회중시계','🕰️',
+    '앞면 <b>바늘</b> 분리 · 뒤로 돌려 <b>뒷뚜껑 나사2</b>→뒷뚜껑→<b>지판 나사3</b>→무브먼트',0.5);
+
+  /* 케이스: 옆벽만(열린 튜브) — 뒤를 열면 안이 보임 */
+  const body=makePart('몸통',[0,0,0]);
+  const caseG=new THREE.CylinderGeometry(1.0,1.0,0.5,64,1,true);
+  packCylUVs(caseG);
+  addMesh(a,body,caseG,P.goldBody,{metalness:.92,roughness:.2},{wrap:'full'});
+  /* 다이얼(앞면, +Y) */
+  const dial=addMesh(a,body,new THREE.CircleGeometry(0.84,64),P.face,{metalness:.05,roughness:.4},{sand:.3,dust:1});
+  dial.rotation.x=-Math.PI/2; dial.position.y=0.25;
+  /* 다이얼 뒷판(빛샘 방지) */
+  const dialBack=detail(body,new THREE.CircleGeometry(0.99,64),matGoldPlate());
+  dialBack.rotation.x=Math.PI/2; dialBack.position.y=0.245;
+  /* 크리스털 베젤 */
+  const bezel=detail(body,new THREE.TorusGeometry(0.88,0.055,16,64),matGoldPlate());
+  bezel.rotation.x=Math.PI/2; bezel.position.y=0.255;
+  finishPart(a,body,[0,0,0]);
+
+  /* 바늘(시·분·초) — 다이얼 바로 위 평면에 눕힘. addMesh로 먼지도 쌓임 */
+  const hands=makePart('바늘',[0,1.3,0.5]);
+  /* 중심 허브(캐논 피니언) */
+  const hub=addMesh(a,hands,cyl(0.05,0.06,0.06,16),P.polished,{metalness:.9,roughness:.25},{sand:.5,dust:1,wrap:'half'});
+  hub.position.y=0.03;
+  /* 한 손잡이 바늘: 길이 len, 방향 ang. 밑동은 중심, 끝은 화살 */
+  const mkHand=(paint,len,wid,ang,yy)=>{
+    const bg=new THREE.BoxGeometry(wid,0.018,len); packBoxUVs(bg);
+    const bar=addMesh(a,hands,bg,paint,{metalness:.85,roughness:.3},{sand:.6,dust:1});
+    bar.position.set(Math.sin(ang)*(len*0.5-0.03),yy,Math.cos(ang)*(len*0.5-0.03));
+    bar.rotation.y=ang;
+  };
+  mkHand(P.blued, 0.34,0.06, Math.PI*0.0,  0.02);  // 시침(12시 방향)
+  mkHand(P.blued, 0.52,0.038,Math.PI*0.66, 0.045); // 분침(4시쯤)
+  mkHand(P.polished,0.56,0.016,Math.PI*1.25,0.07); // 초침(가늘게)
+  /* 초침 카운터웨이트 */
+  const cw=addMesh(a,hands,new THREE.SphereGeometry(0.035,12,10),P.blued,{metalness:.85,roughness:.3},{sand:.5,dust:1});
+  cw.position.set(-Math.sin(Math.PI*1.25)*0.12,0.07,-Math.cos(Math.PI*1.25)*0.12);
+  finishPart(a,hands,[0,0.29,0]);
+
+  /* 뒷뚜껑(뒤, -Y) — 나사 2개로 잠김 */
+  const back=makePart('뒷뚜껑',[0,-1.1,1.1],[0.5,0,0]);
+  addMesh(a,back,cyl(1.02,1.02,0.08,64),P.goldLid,{metalness:.92,roughness:.2},{wrap:'half'});
+  const bin=detail(back,new THREE.TorusGeometry(0.6,0.01,8,60),matGoldPlate());
+  bin.rotation.x=Math.PI/2; bin.position.y=0.042;
+  finishPart(a,back,[0,-0.3,0]);
+  addScrew(a,back,[0.82,-0.36,0],[Math.PI,0,0],[1.0,-1.1,0.7]);
+  addScrew(a,back,[-0.82,-0.36,0],[Math.PI,0,0],[-1.0,-1.1,0.7]);
+
+  /* 무브먼트 지판 — 뒷뚜껑을 열어야 접근. 케이스 안(−Y쪽)에 수납.
+     지판 위(−Y 방향)로만 부품이 쌓이며, 모두 케이스 벽 안에 들어감 */
+  const plate=makePart('무브먼트',[0,-1.9,0.5]);
+  plate.requires=back;
+  addMesh(a,plate,cyl(0.8,0.8,0.05,60),P.movement,{metalness:.8,roughness:.3},{sand:.35,dust:1,wrap:'half'});
+  /* 기어 트레인 (지판 아래=−Y=뒷뚜껑 쪽) — 케이스 바닥(−0.25) 안쪽에 머무름 */
+  addGear(plate, 0.02,-0.05, 0.0, 0.26, 36, 0.026, matBrassGear(), matSteel());
+  addGear(plate, 0.30,-0.05,-0.12, 0.16, 26, 0.024, matBrassGear(), matSteel());
+  addGear(plate,-0.28,-0.05,-0.16, 0.13, 20, 0.022, matBrassGear(), matSteel());
+  addGear(plate, 0.10,-0.05, 0.34, 0.10, 16, 0.02,  matBrassGear(), matSteel());
+  /* 태엽통 */
+  const barrel=detail(plate,new THREE.CylinderGeometry(0.24,0.24,0.10,32),matGoldPlate());
+  barrel.position.set(-0.28,-0.08,0.28);
+  addGear(plate,-0.28,-0.05,0.28,0.26,42,0.018,matBrassGear(),matGoldPlate());
+  /* 밸런스 휠 + 헤어스프링 (얕게) */
+  const balRim=detail(plate,new THREE.TorusGeometry(0.17,0.018,12,40),matSteel());
+  balRim.position.set(0.34,-0.09,0.30); balRim.rotation.x=Math.PI/2;
+  for(let i=0;i<3;i++){
+    const spoke=detail(plate,new THREE.BoxGeometry(0.34,0.01,0.016),matSteel());
+    spoke.position.set(0.34,-0.09,0.30); spoke.rotation.set(Math.PI/2,i*Math.PI/3,0);
+  }
+  const hair=detail(plate,new THREE.TorusGeometry(0.09,0.004,8,48),matBlueSteel());
+  hair.position.set(0.34,-0.08,0.30); hair.rotation.x=Math.PI/2;
+  /* 밸런스 콕(브릿지) + 보석 */
+  const cock=detail(plate,new THREE.BoxGeometry(0.44,0.025,0.1),matGoldPlate());
+  cock.position.set(0.28,-0.13,0.30);
+  const jw1=detail(plate,new THREE.CylinderGeometry(0.028,0.028,0.018,12),matRuby());
+  jw1.position.set(0.34,-0.145,0.30);
+  for(const [x,z] of [[0.02,0.0],[0.30,-0.12],[-0.28,-0.16],[0.10,0.34]]){
+    const jw=detail(plate,new THREE.CylinderGeometry(0.026,0.026,0.016,12),matRuby());
+    jw.position.set(x,-0.075,z);
+  }
+  const ratchet=detail(plate,new THREE.BoxGeometry(0.2,0.012,0.026),matBlueSteel());
+  ratchet.position.set(-0.05,-0.08,0.28); ratchet.rotation.y=0.5;
+  finishPart(a,plate,[0,-0.04,0]);
+  addScrew(a,plate,[0.62,-0.08,0.18],[Math.PI,0,0],[0.8,-1.9,0.5]);
+  addScrew(a,plate,[-0.62,-0.08,0.18],[Math.PI,0,0],[-0.8,-1.9,0.5]);
+  addScrew(a,plate,[0,-0.08,-0.66],[Math.PI,0,0],[0,-1.9,-0.7]);
+
+  /* 용두 + 링 */
+  const crown=makePart('용두',[1.3,0.5,0]);
+  const cr=addMesh(a,crown,cyl(0.13,0.13,0.16,20),P.brass,{metalness:.9,roughness:.22},{wrap:'half'});
+  cr.rotation.z=Math.PI/2;
+  for(let i=0;i<12;i++){
+    const ridge=detail(crown,new THREE.BoxGeometry(0.02,0.16,0.02),matGoldPlate());
+    const ang=i/12*Math.PI*2;
+    ridge.position.set(0,Math.cos(ang)*0.13,Math.sin(ang)*0.13);
+  }
+  const stem=detail(crown,new THREE.CylinderGeometry(0.03,0.03,0.2,10),matSteel());
+  stem.rotation.z=Math.PI/2; stem.position.x=-0.16;
+  const bow=addMesh(a,crown,new THREE.TorusGeometry(0.2,0.045,12,32),P.brass,{metalness:.9,roughness:.22});
+  bow.position.x=0.28;
+  finishPart(a,crown,[1.05,0,0]);
+
+  a.root.position.y=0.42; a.baseY=0.42; a.root.scale.setScalar(0.9);
+})();
+
+/* ---------- ② 청동 향로 ---------- */
+(function(){
+  const a=newAntique('censer','청동 향로','⚱️',
+    '<b>뚜껑</b>과 <b>다리</b>를 분리하고 아래로 돌려 바닥까지 닦아보세요',1.38);
+  const bowl=makePart('몸통',[0,0,0]);
+  /* 바깥벽 */
+  addMesh(a,bowl,lathe([[0.04,0],[0.55,0.02],[0.76,0.2],[0.82,0.48],[0.72,0.74],[0.66,0.82]]),
+    P.bronzeBand,{metalness:.55,roughness:.4},{wrap:'full'});
+  /* 안쪽 벽 + 바닥: 테두리(0.66)에서 시작해 안으로 내려가 중앙 바닥까지 이어짐 → 속이 비지 않음 */
+  addMesh(a,bowl,lathe([
+      [0.66,0.82],[0.72,0.78],[0.74,0.5],[0.66,0.24],[0.4,0.1],[0.12,0.06],[0,0.05]
+    ]),
+    P.bronze,{metalness:.4,roughness:.55,side:THREE.DoubleSide},{sand:.5,dust:1,wrap:'full'});
+  /* 바닥에 쌓인 재(灰) 느낌의 원반 */
+  const ash=addMesh(a,bowl,cyl(0.4,0.44,0.05,28),P.ash,{metalness:.0,roughness:.9},{sand:.7,dust:1,wrap:'half'});
+  ash.position.y=0.11;
+  for(const sx of [-1,1]){
+    const ear=addMesh(a,bowl,new THREE.TorusGeometry(0.14,0.035,10,24),P.bronze,{metalness:.55,roughness:.4},{sand:.9,dust:1});
+    ear.position.set(sx*0.8,0.5,0); ear.rotation.y=Math.PI/2;
+  }
+  finishPart(a,bowl,[0,0,0]);
+
+  const lid=makePart('뚜껑',[0,1.05,0.7],[0.5,0,0]);
+  /* 뚜껑 바깥 */
+  addMesh(a,lid,lathe([[0.66,0],[0.62,0.1],[0.46,0.2],[0.24,0.28],[0.03,0.32]]),
+    P.bronzeBand,{metalness:.55,roughness:.38},{wrap:'full'});
+  /* 뚜껑 안쪽 천장 — 뒤집어 닦을 안쪽 면 */
+  addMesh(a,lid,lathe([[0.03,0.3],[0.24,0.26],[0.46,0.18],[0.62,0.08],[0.64,0.02]]),
+    P.bronze,{metalness:.4,roughness:.55,side:THREE.DoubleSide},{sand:.4,dust:1,wrap:'full'});
+  const knob=addMesh(a,lid,new THREE.SphereGeometry(0.12,22,18),P.brass,{metalness:.85,roughness:.25});
+  knob.position.y=0.36;
+  /* 뚜껑 향 연기 구멍 테두리(장식) */
+  for(let i=0;i<6;i++){
+    const hole=addMesh(a,lid,new THREE.TorusGeometry(0.04,0.012,8,16),P.brass,{metalness:.7,roughness:.35},{sand:.6,dust:1});
+    const ang=i/6*Math.PI*2;
+    hole.position.set(Math.cos(ang)*0.34,0.22,Math.sin(ang)*0.34);
+    hole.rotation.x=Math.PI/2;
+  }
+  finishPart(a,lid,[0,0.83,0]);
+
+  const legs=makePart('다리',[0,-0.75,0.85]);
+  for(let i=0;i<3;i++){
+    const l=addMesh(a,legs,cyl(0.07,0.11,0.3,16),P.bronze,{metalness:.55,roughness:.45},{wrap:'half'});
+    const ang=i/3*Math.PI*2;
+    l.position.set(Math.cos(ang)*0.5,0,Math.sin(ang)*0.5);
+    l.rotation.set(Math.sin(ang)*0.16,0,-Math.cos(ang)*0.16);
+  }
+  finishPart(a,legs,[0,-0.14,0]);
+  a.root.position.y=0.3; a.baseY=0.3;
+})();
+
+/* ---------- ③ 오르골 상자 ---------- */
+(function(){
+  const a=newAntique('musicbox','오르골 상자','🎵',
+    '뚜껑을 열면 무브먼트 — <b>기계부는 나사 🔩 2개</b>를 풀어야 분리됩니다',0.9);
+
+  /* 본체 (속이 빈 상자: 4벽 + 바닥) */
+  const body=makePart('본체',[0,0,0]);
+  const wallMat={metalness:.05,roughness:.42};
+  const W=1.7,D=1.15,H=0.52,tk=0.08;
+  const floorG=new THREE.BoxGeometry(W,tk,D); packBoxUVs(floorG);
+  const floor=addMesh(a,body,floorG,P.wood,wallMat,{sand:.4,dust:1}); floor.position.y=-H/2+tk/2;
+  const sideL=new THREE.BoxGeometry(tk,H,D); packBoxUVs(sideL);
+  const wl=addMesh(a,body,sideL,P.wood,wallMat); wl.position.set(-W/2+tk/2,0,0);
+  const wr2=addMesh(a,body,new THREE.BoxGeometry(tk,H,D),P.wood,wallMat); wr2.position.set(W/2-tk/2,0,0);
+  const frontG=new THREE.BoxGeometry(W,H,tk); packBoxUVs(frontG);
+  const wf=addMesh(a,body,frontG,P.wood,wallMat); wf.position.set(0,0,D/2-tk/2);
+  const backG=new THREE.BoxGeometry(W,H,tk); packBoxUVs(backG);
+  const wb=addMesh(a,body,backG,P.wood,wallMat); wb.position.set(0,0,-D/2+tk/2);
+  finishPart(a,body,[0,0.26,0]);
+
+  /* ===== 무브먼트(기계부) — 하나의 파트에 부속 다수 ===== */
+  const mech=makePart('기계부',[0,0.9,-1.0]);
+  /* 베이스 황동판 */
+  const plateG=new THREE.BoxGeometry(1.4,0.05,0.66); packBoxUVs(plateG);
+  const plate=addMesh(a,mech,plateG,P.brassPlate,{metalness:.8,roughness:.3},{sand:.3,dust:1});
+  plate.position.y=0;
+  /* 실린더 드럼 + 핀(가로 놓임) */
+  const drum=addMesh(a,mech,cyl(0.14,0.14,0.86,28),P.drum,{metalness:.85,roughness:.28},{sand:.3,dust:1,wrap:'half'});
+  drum.rotation.z=Math.PI/2; drum.position.set(-0.05,0.2,0.12);
+  /* 드럼 위의 실제 돌출 핀들 (방사형 바깥으로) */
+  for(let ring=0;ring<11;ring++){
+    const rn=2+Math.floor(Math.random()*3);
+    for(let k=0;k<rn;k++){
+      const pin=new THREE.Mesh(new THREE.ConeGeometry(0.008,0.04,6),
+        new THREE.MeshStandardMaterial({color:0xd9bf7a,metalness:.9,roughness:.25}));
+      const ang=Math.random()*Math.PI*2;
+      const xx=-0.05+(-0.38+ring*0.076);
+      const ry=Math.sin(ang), rz=Math.cos(ang);
+      pin.position.set(xx,0.2+ry*0.16,0.12+rz*0.16);
+      /* 콘의 +Y축이 바깥(반지름 방향)을 향하도록 */
+      pin.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(0,ry,rz).normalize());
+      pin.userData={part:mech}; mech.group.add(pin); mech.meshes.push(pin);
+    }
+  }
+  /* 드럼 축받이(양끝 브래킷) */
+  for(const bx of [-0.52,0.42]){
+    const brk=addMesh(a,mech,new THREE.BoxGeometry(0.05,0.28,0.1),P.brassPlate,{metalness:.8,roughness:.3},{sand:.4,dust:1});
+    brk.position.set(bx,0.14,0.12);
+  }
+  /* 콤(빗살): 개별 티스 */
+  const combBaseG=new THREE.BoxGeometry(0.8,0.05,0.09); packBoxUVs(combBaseG);
+  const combBase=addMesh(a,mech,combBaseG,P.steel,{metalness:.9,roughness:.22},{sand:.25,dust:1});
+  combBase.position.set(-0.05,0.075,-0.14);
+  for(let i=0;i<20;i++){
+    const w=0.028-i*0.0007;
+    const tooth=new THREE.Mesh(new THREE.BoxGeometry(w,0.02,0.14+i*0.006),
+      new THREE.MeshStandardMaterial({color:0xcfd2d6,metalness:.92,roughness:.2}));
+    tooth.position.set(-0.44+i*0.039,0.075,-0.06);
+    tooth.userData={part:mech}; mech.group.add(tooth); mech.meshes.push(tooth);
+  }
+  /* 태엽통(메인스프링 배럴) */
+  const barrel=addMesh(a,mech,cyl(0.17,0.17,0.13,24),P.brassPlate,{metalness:.85,roughness:.26},{sand:.35,dust:1,wrap:'half'});
+  barrel.position.set(0.5,0.14,-0.16); barrel.rotation.x=Math.PI/2;
+  const barrelCap=addMesh(a,mech,cyl(0.05,0.05,0.16,12),P.brass,{metalness:.85,roughness:.25},{wrap:'half'});
+  barrelCap.position.set(0.5,0.25,-0.16);
+  /* 감는 열쇠(윙 너트) */
+  for(let i=0;i<2;i++){
+    const wing=addMesh(a,mech,new THREE.BoxGeometry(0.14,0.03,0.05),P.brass,{metalness:.85,roughness:.25},{sand:.6,dust:1});
+    wing.position.set(0.5,0.33,-0.16); wing.rotation.y=i*Math.PI/2;
+  }
+  /* 거버너(속도조절) 회전추 + 기어 */
+  const gov=addMesh(a,mech,cyl(0.06,0.06,0.03,16),P.brass,{metalness:.85,roughness:.28},{sand:.4,dust:1,wrap:'half'});
+  gov.position.set(0.55,0.1,0.2); gov.rotation.x=Math.PI/2;
+  const flyG=addMesh(a,mech,new THREE.BoxGeometry(0.14,0.015,0.03),P.steel,{metalness:.9,roughness:.22},{sand:.4,dust:1});
+  flyG.position.set(0.55,0.16,0.2);
+  /* 작은 기어 2개 */
+  for(const [gx,gz,gr2] of [[0.28,-0.18,0.07],[0.14,-0.05,0.05]]){
+    const gear=addMesh(a,mech,cyl(gr2,gr2,0.03,18),P.brass,{metalness:.85,roughness:.28},{sand:.45,dust:1,wrap:'half'});
+    gear.position.set(gx,0.11,gz); gear.rotation.x=Math.PI/2;
+  }
+  finishPart(a,mech,[0,0.28,-0.05]);
+  /* 기계부 고정 나사 2개 */
+  addScrew(a,mech,[0.58,0.34,0.24],null,[0.8,1.25,-0.6]);
+  addScrew(a,mech,[-0.58,0.34,-0.24],null,[-0.6,1.25,-0.75]);
+
+  /* 뚜껑 + 경첩 */
+  const lid=makePart('뚜껑',[0,0.85,0.9],[-0.6,0,0]);
+  const lg=new THREE.BoxGeometry(1.76,0.14,1.21); packBoxUVs(lg);
+  addMesh(a,lid,lg,P.woodInlay,{metalness:.05,roughness:.38},{sand:.5,dust:1});
+  /* 뚜껑 안쪽 거울 느낌 판 */
+  const mirG=new THREE.BoxGeometry(1.4,0.02,0.9); packBoxUVs(mirG);
+  const mir=addMesh(a,lid,mirG,P.brassPlate,{metalness:.9,roughness:.15},{sand:.3,dust:1});
+  mir.position.y=-0.06;
+  /* 경첩(뒤쪽) */
+  for(const hx of [-0.6,0.6]){
+    const hinge=addMesh(a,lid,cyl(0.03,0.03,0.14,12),P.brass,{metalness:.85,roughness:.28},{sand:.5,dust:1,wrap:'half'});
+    hinge.rotation.z=Math.PI/2; hinge.position.set(hx,-0.05,-0.58);
+  }
+  finishPart(a,lid,[0,0.6,0]);
+
+  /* 서랍 */
+  const drawer=makePart('서랍',[0,0,1.1]);
+  const dg=new THREE.BoxGeometry(0.56,0.2,0.16); packBoxUVs(dg);
+  addMesh(a,drawer,dg,P.wood,{metalness:.05,roughness:.45},{sand:.4,dust:1});
+  const knob=addMesh(a,drawer,new THREE.SphereGeometry(0.045,14,12),P.brass,{metalness:.85,roughness:.25},{sand:.6,dust:1});
+  knob.position.z=0.1;
+  finishPart(a,drawer,[0,0.14,0.58]);
+  a.root.position.y=0.02; a.baseY=0.02;
+})();
+
+/* ---------- ④ 도자기 주전자 ---------- */
+(function(){
+  const a=newAntique('teapot','도자기 주전자','🫖',
+    '뚜껑을 열고, 주둥이·손잡이 틈은 <b>면봉</b> · 굽바닥은 아래로 돌려서',1.42);
+  const body=makePart('본체',[0,0,0]);
+  /* 바깥벽 */
+  addMesh(a,body,lathe([[0.04,0],[0.5,0.02],[0.68,0.24],[0.72,0.5],[0.58,0.84],[0.42,0.98],[0.45,1.05]]),
+    P.porcelain,{metalness:.0,roughness:.14},{wrap:'full'});
+  /* 안쪽 벽 + 바닥 — 입구(0.42)에서 안으로 내려가 중앙 바닥까지 이어짐 */
+  addMesh(a,body,lathe([[0.42,1.0],[0.5,0.9],[0.62,0.6],[0.55,0.28],[0.3,0.12],[0.08,0.09],[0,0.09]]),
+    P.porcelainIn,{metalness:.0,roughness:.2,side:THREE.DoubleSide},{sand:.5,dust:1,wrap:'full'});
+  const curve=new THREE.CubicBezierCurve3(
+    new THREE.Vector3(0.5,0.34,0), new THREE.Vector3(0.9,0.42,0),
+    new THREE.Vector3(1.0,0.7,0), new THREE.Vector3(1.06,0.95,0));
+  addMesh(a,body,new THREE.TubeGeometry(curve,24,0.085,14),P.porcelain,{metalness:.0,roughness:.14},{sand:.8,dust:1});
+  const handle=addMesh(a,body,new THREE.TorusGeometry(0.32,0.06,14,36,Math.PI*1.25),
+    P.porcelain,{metalness:.0,roughness:.14},{sand:.9,dust:1});
+  handle.position.set(-0.62,0.55,0); handle.rotation.z=Math.PI*0.62;
+  finishPart(a,body,[0,0,0]);
+
+  const lid=makePart('뚜껑',[0,0.95,0.65],[0.4,0,0]);
+  /* 뚜껑 윗면 */
+  addMesh(a,lid,lathe([[0.44,0],[0.42,0.06],[0.24,0.15],[0.04,0.19]]),
+    P.porcelain,{metalness:.0,roughness:.14},{wrap:'full'});
+  /* 뚜껑 안쪽 + 걸림턱 — 뒤집어 닦을 면 */
+  addMesh(a,lid,lathe([[0.04,0.17],[0.24,0.13],[0.4,0.05],[0.42,-0.02],[0.36,-0.06],[0.34,-0.02]]),
+    P.porcelainIn,{metalness:.0,roughness:.2,side:THREE.DoubleSide},{sand:.4,dust:1,wrap:'full'});
+  const knob=addMesh(a,lid,new THREE.SphereGeometry(0.09,18,14),P.porcelain,{metalness:.0,roughness:.14});
+  knob.position.y=0.22;
+  finishPart(a,lid,[0,1.03,0]);
+  a.root.position.y=0.02; a.baseY=0.02;
+})();
+
+/* =========================================================
+   상태 / UI
+========================================================= */
+let mode='rotate';
+let tool='blow';
+/* wr = 실제 3D 공간에서의 붓 반경 (미터). 부품마다 텍스처 밀도가 달라도
+   화면에서 닿은 만큼만 닦이도록 매 타격 시 픽셀 반경으로 환산한다 */
+const TOOLS={
+  blow:{wr:0.17,sand:0.34,dust:0.03,pn:9},
+  brush:{wr:0.095,sand:0.24,dust:0.28,pn:5},
+  swab:{wr:0.038,sand:0.85,dust:0.85,pn:2},
+};
+const isTouch=('ontouchstart' in window)&&navigator.maxTouchPoints>0;
+const HINTS=isTouch?{
+  rotate:'드래그로 <b>위아래·좌우 회전</b> · 두 손가락 <b>확대</b> · 우측 <b>＋ － ⟲</b>',
+  clean:'유물을 문지르면 세척, <b>빈 곳을 드래그하면 회전</b>됩니다',
+  explode:'부품을 <b>톡</b> 치면 분리 — 🔩나사가 있으면 나사부터',
+}:{
+  rotate:'좌드래그로 <b>위아래·좌우 회전</b> · <b>휠</b> 확대축소 · 우측 <b>＋ － ⟲</b>',
+  clean:'유물 위를 <b>문질러</b> 세척 · <b>빈 곳/우클릭 드래그</b>로 회전',
+  explode:'부품을 <b>클릭</b>하면 분리 — 🔩나사가 있으면 나사부터',
+};
+function setHint(){
+  const extra=active?`<br>${active.hint}`:'';
+  $('#hint').innerHTML=HINTS[mode]+(mode!=='rotate'?extra:'');
+  showHint();
+}
+let hintTimer=0;
+function showHint(){
+  $('#hint').classList.add('show');
+  clearTimeout(hintTimer);
+  hintTimer=setTimeout(()=>$('#hint').classList.remove('show'),4200);
+}
+$('#helpBtn').onclick=()=>{
+  const h=$('#hint');
+  if(h.classList.contains('show')){h.classList.remove('show');clearTimeout(hintTimer);}
+  else showHint();
+};
+let toastTimer=0;
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),1400);
+}
+
+/* ---------- 유물 선택 드롭다운 ---------- */
+const ORDER=['watch','censer','musicbox','teapot'];
+const selList=$('#selList');
+function buildSelList(){
+  selList.innerHTML='';
+  for(const id of ORDER){
+    const a=antiques[id];
+    const it=document.createElement('div');
+    it.className='selItem'+(active&&active.id===id?' on':'')+(a.done?' done':'');
+    it.dataset.id=id;
+    it.innerHTML=`<span class="em">${a.em}</span><span class="nm">${a.name}</span><span class="st">${a.done?'복원완료':(a.pct>1?a.pct.toFixed(0)+'%':'시작 전')}</span>`;
+    it.onclick=()=>{selectAntique(id);closeSel();};
+    selList.appendChild(it);
+  }
+}
+function openSel(){buildSelList();selList.classList.add('open');$('#selBtn').querySelector('.chev').textContent='▲';}
+function closeSel(){selList.classList.remove('open');$('#selBtn').querySelector('.chev').textContent='▼';}
+$('#selBtn').onclick=(e)=>{e.stopPropagation();selList.classList.contains('open')?closeSel():openSel();};
+document.addEventListener('pointerdown',e=>{
+  if(!$('#selectWrap').contains(e.target))closeSel();
+  if(!$('#toolPop').contains(e.target)&&e.target!==$('#toolBtn')&&!$('#toolBtn').contains(e.target))closeToolPop();
+});
+
+function selectAntique(id){
+  if(active) scene.remove(active.root);
+  active=antiques[id];
+  scene.add(active.root);
+  $('#selEm').textContent=active.em;
+  $('#selNm').textContent=active.name;
+  $('#selBtn').classList.toggle('complete',active.done);
+  camTheta=0.5; camPhi=1.12; camR=3.3; camRTarget=3.3;
+  updateProgressUI(); setHint();
+}
+
+/* ---------- 모드 ---------- */
+$$('.mode').forEach(b=>b.onclick=()=>{
+  mode=b.dataset.mode;
+  $$('.mode').forEach(x=>x.classList.toggle('on',x===b));
+  $('#toolBtn').classList.toggle('show',mode==='clean');
+  if(mode!=='clean'){closeToolPop();toolCursor.visible=false;cursorRing.visible=false;}
+  setHint();
+});
+
+/* ---------- 도구 팝오버 (선택 즉시 닫힘) ---------- */
+const TOOLNAME={blow:'블로워',brush:'세척솔',swab:'면봉'};
+const TOOLEM={blow:'🌬️',brush:'🖌️',swab:'🧼'};
+function openToolPop(){$('#toolPop').classList.add('open');}
+function closeToolPop(){$('#toolPop').classList.remove('open');}
+$('#toolBtn').onclick=(e)=>{e.stopPropagation();$('#toolPop').classList.contains('open')?closeToolPop():openToolPop();};
+$$('.tool').forEach(b=>b.onclick=()=>{
+  tool=b.dataset.tool;
+  $$('.tool').forEach(x=>x.classList.toggle('on',x===b));
+  $('#toolBtnEm').textContent=TOOLEM[tool];
+  $('#toolBtnNm').textContent=TOOLNAME[tool];
+  closeToolPop();               /* 선택하면 창이 사라져 화면을 가리지 않음 */
+});
+
+/* 확대 / 축소 */
+let camRTarget=camR;
+$('#zoomIn').onclick=()=>{camRTarget=Math.max(1.8,camRTarget-0.55);};
+$('#zoomOut').onclick=()=>{camRTarget=Math.min(6.5,camRTarget+0.55);};
+/* 오염 표시(히트맵) 토글 — 안 닦인 부위를 살짝 붉게 */
+let heat=false;
+$('#heatBtn').onclick=()=>{
+  heat=!heat;
+  $('#heatBtn').classList.toggle('on',heat);
+  toast(heat?'🔍 남은 오염 표시 켜짐':'🔍 오염 표시 꺼짐');
+};
+/* 제자리로 */
+$('#resetBtn').onclick=()=>{
+  Snd.stopClean();
+  camTheta=0.5;camPhi=1.12;camRTarget=3.3;
+  if(active){
+    for(const part of active.parts) if(part.detached) part.detached=false;
+  }
+  toast('⟲ 제자리로 되돌렸습니다');
+};
+function updateProgressUI(){
+  if(!active)return;
+  let init=0,cur=0;
+  for(const ds of active.dss){init+=ds.initSum;cur+=ds.curSum;}
+  const pct=Math.max(0,Math.min(100,(1-cur/init)*100));
+  active.pct=pct;
+  $('#pct').textContent=pct.toFixed(0)+'%';
+  $('#fill').style.width=pct+'%';
+  if(pct>=97&&!active.done){
+    active.done=true;
+    $('#selBtn').classList.add('complete');
+    $('#doneName').textContent=`「${active.name}」이(가) 본래의 빛을 되찾았습니다`;
+    const card=$('#doneCard'); card.classList.add('show'); Snd.win();
+    setTimeout(()=>card.classList.remove('show'),2600);
+  }
+}
+setInterval(()=>{
+  if(!active)return;
+  let changed=false;
+  for(const ds of active.dss){
+    if(ds.dirtyStat){ds.curSum=ds.sample();ds.dirtyStat=false;changed=true;}
+    ds.remain=ds.curSum/ds.initSum;
+  }
+  if(changed)updateProgressUI();
+},350);
+
+/* =========================================================
+   도구 — 파워워시처럼 실제 3D 도구가 표면을 겨눠 세척
+   (블로워 노즐 · 세척솔 · 면봉을 지오메트리로 제작)
+========================================================= */
+const toolCursor=new THREE.Group(); toolCursor.visible=false; scene.add(toolCursor);
+
+/* 표면 접촉 링(문지르는 자리 표시) */
+const cursorRing=new THREE.Mesh(new THREE.RingGeometry(0.78,1,40),
+  new THREE.MeshBasicMaterial({color:0xffe9b0,transparent:true,opacity:0.7,side:THREE.DoubleSide,depthWrite:false}));
+scene.add(cursorRing); cursorRing.visible=false;
+
+/* ---- 각 도구 3D 모델 (로컬 +Z가 '분사/작업 방향', 원점이 팁) ---- */
+function buildTools(){
+  const M=(c,r,m)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+  const tools={};
+
+  /* 블로워: 손잡이 + 몸통 + 앞으로 좁아지는 노즐 */
+  {
+    const g=new THREE.Group();
+    const bodyMat=M(0x3a3f47,0.5,0.3), accent=M(0xd8ad58,0.35,0.8), grip=M(0x1c1e22,0.7,0.1);
+    const body=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.19,0.5,20),bodyMat);
+    body.rotation.x=Math.PI/2; body.position.z=-0.42; g.add(body);
+    const nozzle=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.14,0.36,20),accent);
+    nozzle.rotation.x=Math.PI/2; nozzle.position.z=-0.13; g.add(nozzle);
+    const tip=new THREE.Mesh(new THREE.TorusGeometry(0.035,0.012,8,16),accent);
+    tip.position.z=0.03; g.add(tip);
+    const handle=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.34,14),grip);
+    handle.position.set(0,-0.22,-0.5); handle.rotation.x=0.5; g.add(handle);
+    const trigger=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.12,0.03),accent);
+    trigger.position.set(0,-0.11,-0.4); g.add(trigger);
+    tools.blow=g;
+  }
+  /* 세척솔: 나무 손잡이 + 금속 페룰 + 촘촘한 강모 다발 */
+  {
+    const g=new THREE.Group();
+    const wood=M(0x7a4e28,0.7,0.05), ferrule=M(0xc9a45c,0.3,0.85);
+    const bri1=M(0xe8d9b0,0.92,0.0), bri2=M(0xd8c48c,0.92,0.0), bri3=M(0xc9b070,0.92,0.0);
+    const bris=[bri1,bri2,bri3];
+    const handle=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.065,0.6,16),wood);
+    handle.rotation.x=Math.PI/2; handle.position.z=-0.5; g.add(handle);
+    const fer=new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.07,0.12,18),ferrule);
+    fer.rotation.x=Math.PI/2; fer.position.z=-0.17; g.add(fer);
+    /* 강모 밑동을 감싸는 받침(빈틈 감춤) */
+    const pad=new THREE.Mesh(new THREE.CylinderGeometry(0.072,0.072,0.03,18),M(0x8a7040,0.9,0));
+    pad.rotation.x=Math.PI/2; pad.position.z=-0.11; g.add(pad);
+    /* 동심원 링으로 촘촘히 심기 */
+    const rings=[
+      {r:0.0,  n:1,  splay:0.0},
+      {r:0.018,n:7,  splay:0.05},
+      {r:0.034,n:13, splay:0.10},
+      {r:0.05, n:19, splay:0.16},
+      {r:0.066,n:26, splay:0.24},
+    ];
+    for(const ring of rings){
+      for(let i=0;i<ring.n;i++){
+        const a=(i/ring.n)*Math.PI*2 + (ring.r*7);
+        const len=0.15+Math.random()*0.04;
+        const b=new THREE.Mesh(new THREE.CylinderGeometry(0.004,0.0028,len,5),
+          bris[(i+Math.floor(ring.r*100))%3]);
+        b.rotation.x=Math.PI/2;
+        /* 밑동 위치 */
+        const bx=Math.cos(a)*ring.r, by=Math.sin(a)*ring.r;
+        /* 끝으로 갈수록 바깥으로 살짝 벌어지게: 그룹으로 회전 */
+        const holder=new THREE.Group();
+        holder.position.set(bx,by,-0.03);
+        holder.rotation.z=Math.atan2(by,bx);
+        holder.rotateX(ring.splay);      // 바깥으로 fan-out
+        b.position.z=-len*0.5+0.02;      // 팁이 앞(+z 근처)
+        holder.add(b); g.add(holder);
+      }
+    }
+    tools.brush=g;
+  }
+  /* 면봉: 가는 막대 + 양끝 솜 (앞쪽 솜이 팁) */
+  {
+    const g=new THREE.Group();
+    const stick=M(0xf2ede0,0.6,0.0), cotton=M(0xffffff,0.95,0.0);
+    const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.014,0.5,10),stick);
+    rod.rotation.x=Math.PI/2; rod.position.z=-0.3; g.add(rod);
+    const tip=new THREE.Mesh(new THREE.SphereGeometry(0.035,14,12),cotton);
+    tip.scale.z=1.5; tip.position.z=-0.02; g.add(tip);
+    const back=new THREE.Mesh(new THREE.SphereGeometry(0.035,14,12),cotton);
+    back.scale.z=1.5; back.position.z=-0.56; g.add(back);
+    tools.swab=g;
+  }
+  return tools;
+}
+const TOOLMODELS=buildTools();
+for(const k in TOOLMODELS){TOOLMODELS[k].visible=false;toolCursor.add(TOOLMODELS[k]);}
+
+/* 분사(제트) 이펙트 — 블로워/솔용 파티클 */
+const jet=[];
+function jetSpray(origin,dir,tool){
+  if(jet.length>40)return;
+  const n=tool==='blow'?7:(tool==='brush'?4:2);
+  for(let i=0;i<n;i++){
+    const g=new THREE.SphereGeometry(tool==='blow'?0.02:0.014,6,6);
+    const col=tool==='blow'?0xdfe8ef:(tool==='brush'?0xcbb488:0xffffff);
+    const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.7,depthWrite:false}));
+    m.position.copy(origin);
+    const spread=tool==='blow'?0.5:0.25;
+    const v=dir.clone().multiplyScalar(tool==='blow'?2.4:1.3)
+      .add(new THREE.Vector3((Math.random()-0.5)*spread,(Math.random()-0.5)*spread,(Math.random()-0.5)*spread));
+    scene.add(m); jet.push({m,v,life:1});
+  }
+}
+function updateJet(dt){
+  for(let i=jet.length-1;i>=0;i--){
+    const j=jet[i]; j.life-=dt*3.2;
+    j.m.position.addScaledVector(j.v,dt);
+    j.m.material.opacity=Math.max(0,j.life)*0.7;
+    j.m.scale.multiplyScalar(1+dt*1.5);
+    if(j.life<=0){scene.remove(j.m);j.m.geometry.dispose();j.m.material.dispose();jet.splice(i,1);}
+  }
+}
+
+const _up=new THREE.Vector3(0,1,0);
+let lastCleanHit=null; /* {point,normal} — 분사 이펙트 발생용 */
+function updateToolCursor(e){
+  if(mode!=='clean'){toolCursor.visible=false;cursorRing.visible=false;lastCleanHit=null;return;}
+  const hits=e?raycastAt(e):[];
+  if(!hits.length){toolCursor.visible=false;cursorRing.visible=false;lastCleanHit=null;return;}
+  const h=hits[0];
+  const wr=TOOLS[tool].wr;
+  const n=h.face?h.face.normal.clone().transformDirection(h.object.matrixWorld).normalize():_up.clone();
+
+  /* 접촉 링: 표면에 눕혀 표시 */
+  cursorRing.visible=true;
+  cursorRing.position.copy(h.point).addScaledVector(n,0.012);
+  cursorRing.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),n);
+  cursorRing.scale.setScalar(wr);
+
+  /* 도구 본체: 팁(원점)을 표면에 두고, +Z가 표면 안쪽(-n)을 향하도록.
+     즉 도구가 표면 바깥에서 안쪽으로 겨눠짐 → 손에 든 것처럼 비스듬히 */
+  toolCursor.visible=true;
+  for(const k in TOOLMODELS)TOOLMODELS[k].visible=(k===tool);
+  const model=TOOLMODELS[tool];
+  /* 카메라 쪽으로 살짝 기울여 '들고 있는' 각도 연출 */
+  const toCam=camera.position.clone().sub(h.point).normalize();
+  const aim=n.clone().multiplyScalar(0.65).add(toCam.clone().multiplyScalar(0.35)).normalize();
+  toolCursor.position.copy(h.point);
+  /* 모델 로컬 +Z(작업 방향)가 표면 안쪽(into)을 향하게 → 팁이 표면에 닿고 몸통·손잡이는 바깥으로 뻗음 */
+  const into=aim.clone().negate();
+  const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),into);
+  toolCursor.quaternion.copy(q);
+  const sc=THREE.MathUtils.clamp(camR*0.32,0.7,1.5);
+  model.scale.setScalar(sc);
+
+  lastCleanHit={point:h.point.clone(),normal:n.clone(),into:into.clone()};
+}
+
+/* =========================================================
+   입자 이펙트
+========================================================= */
+const bursts=[];
+function burst(pos,n,color){
+  if(bursts.length>26)return;
+  const g=new THREE.BufferGeometry();
+  const p=new Float32Array(n*3), vel=[];
+  for(let i=0;i<n;i++){
+    p[i*3]=pos.x;p[i*3+1]=pos.y;p[i*3+2]=pos.z;
+    vel.push(new THREE.Vector3((Math.random()-0.5)*1.4,Math.random()*1.1+0.3,(Math.random()-0.5)*1.4));
+  }
+  g.setAttribute('position',new THREE.BufferAttribute(p,3));
+  const m=new THREE.PointsMaterial({color,size:0.035,transparent:true,opacity:0.9,depthWrite:false});
+  const pts=new THREE.Points(g,m);
+  scene.add(pts); bursts.push({pts,vel,life:1});
+}
+function updateBursts(dt){
+  for(let i=bursts.length-1;i>=0;i--){
+    const b=bursts[i]; b.life-=dt*2.2;
+    const arr=b.pts.geometry.attributes.position;
+    for(let j=0;j<b.vel.length;j++){
+      b.vel[j].y-=dt*2.4;
+      arr.setXYZ(j,arr.getX(j)+b.vel[j].x*dt,arr.getY(j)+b.vel[j].y*dt,arr.getZ(j)+b.vel[j].z*dt);
+    }
+    arr.needsUpdate=true; b.pts.material.opacity=Math.max(0,b.life)*0.85;
+    if(b.life<=0){scene.remove(b.pts);b.pts.geometry.dispose();b.pts.material.dispose();bursts.splice(i,1);}
+  }
+}
+
+/* =========================================================
+   입력
+========================================================= */
+const pointers=new Map();
+let lastX=0,lastY=0,pinchD=0,lastCX=0,lastCY=0,tapInfo=null,lastHit=null,brushTick=0;
+let dragKind=null; /* 'clean' | 'orbit' */
+const el=renderer.domElement;
+function ndc(e){return new THREE.Vector2((e.clientX/innerWidth)*2-1,-(e.clientY/innerHeight)*2+1);}
+function pickMeshes(){
+  if(!active)return [];
+  const arr=[];
+  for(const part of active.parts)for(const m of part.meshes)arr.push(m);
+  return arr;
+}
+function raycastAt(e){
+  raycaster.setFromCamera(ndc(e),camera);
+  return raycaster.intersectObjects(pickMeshes());
+}
+/* 교차한 삼각형의 (월드 거리 : UV 거리) 비율로 픽셀 반경 환산 */
+const _vA=new THREE.Vector3(),_vB=new THREE.Vector3(),_vC=new THREE.Vector3();
+function pxRadius(h,worldR,S){
+  const f=h.face;
+  if(!f)return Math.max(3,worldR*S*0.2);
+  const geo=h.object.geometry, pos=geo.attributes.position, uv=geo.attributes.uv;
+  _vA.fromBufferAttribute(pos,f.a).applyMatrix4(h.object.matrixWorld);
+  _vB.fromBufferAttribute(pos,f.b).applyMatrix4(h.object.matrixWorld);
+  _vC.fromBufferAttribute(pos,f.c).applyMatrix4(h.object.matrixWorld);
+  const w1=_vA.distanceTo(_vB), w2=_vA.distanceTo(_vC);
+  const t1=Math.hypot(uv.getX(f.a)-uv.getX(f.b),uv.getY(f.a)-uv.getY(f.b));
+  const t2=Math.hypot(uv.getX(f.a)-uv.getX(f.c),uv.getY(f.a)-uv.getY(f.c));
+  let ratio=0,cnt=0;
+  if(w1>1e-6&&t1>1e-6){ratio+=t1/w1;cnt++;}
+  if(w2>1e-6&&t2>1e-6){ratio+=t2/w2;cnt++;}
+  if(!cnt)return Math.max(3,worldR*S*0.2);
+  return Math.min(72,Math.max(2.5,worldR*(ratio/cnt)*S));
+}
+function cleanAt(e){
+  const hits=raycastAt(e);
+  if(!hits.length||!hits[0].uv||!hits[0].object.userData.ds){lastHit=null;return;}
+  const h=hits[0], ds=h.object.userData.ds, T=TOOLS[tool];
+  const u=h.uv.x,v=h.uv.y;
+  const r=pxRadius(h,T.wr,ds.S);
+  let moved=0;
+  if(lastHit&&lastHit.mesh===h.object){
+    let dx=u-lastHit.u,dy=v-lastHit.v;
+    /* 원통 이음새(u 0↔1) 최단 경로 보정: 두 점 모두 옆면 영역일 때만 */
+    const sideBoth=ds.wrap==='full'||(ds.wrap==='half'&&v>=0.5&&lastHit.v>=0.5);
+    if(sideBoth&&Math.abs(dx)>0.5)dx-=Math.sign(dx);
+    const dist=Math.hypot(dx,dy)*ds.S;
+    moved=dist;
+    if(dist>r*7){
+      /* UV가 점프(이음새/캡↔옆면 경계) → 이어그리지 않고 새 타격점만 */
+      ds.brush(u,v,r,T.sand,T.dust);
+    }else{
+      const steps=Math.min(14,Math.max(1,Math.ceil(dist/(r*0.45))));
+      for(let i=1;i<=steps;i++){
+        ds.brush(lastHit.u+dx*i/steps,lastHit.v+dy*i/steps,r,T.sand,T.dust);
+      }
+    }
+  }else{
+    ds.brush(u,v,r,T.sand,T.dust);
+  }
+  lastHit={mesh:h.object,u,v};
+  Snd.keepClean(tool,Math.min(1,moved/(r*2)));
+  /* 도구 팁 위치에서 표면을 향해 분사 */
+  if(lastCleanHit){
+    const origin=lastCleanHit.point.clone().addScaledVector(lastCleanHit.normal,0.12);
+    jetSpray(origin,lastCleanHit.into,tool);
+  }
+  if(++brushTick%3===0)
+    burst(h.point,T.pn,tool==='blow'?0xd8c49a:0xbfa87e);
+}
+const RED={r:.65,g:.07,b:.05};
+function tryExplodeTap(e){
+  const hits=raycastAt(e);
+  if(!hits.length)return;
+  const part=hits[0].object.userData.part;
+  if(!part)return;
+  if(part.isScrew){
+    if(!part.detached){
+      part.detached=true; part.flash=1; Snd.screw();
+      toast('🔩 나사를 풀었습니다');
+    }else{
+      if(part.host&&part.host.detached){
+        part.flash=1;part.flashCol=RED; Snd.pop();
+        toast('부품을 먼저 조립하세요'); return;
+      }
+      part.detached=false; part.flash=1; Snd.tighten();
+      toast('🔩 나사를 조였습니다');
+    }
+    burst(hits[0].point,6,0xf2d492);
+    return;
+  }
+  if(part.name==='몸통'||part.name==='본체'){part.flash=1;return;}
+  if(!part.detached&&part.requires&&!part.requires.detached){
+    part.flash=1;part.flashCol=RED; Snd.pop();
+    toast(`먼저 ${part.requires.name}을(를) 분리하세요`);
+    return;
+  }
+  if(!part.detached&&part.locks.some(s=>!s.detached)){
+    part.flash=1;part.flashCol=RED; Snd.pop();
+    toast('🔩 나사를 먼저 풀어주세요');
+    return;
+  }
+  if(part.detached&&part.locks.length&&part.locks.some(s=>s.detached)===false){
+    /* (나사가 이미 채워진 상태로 재분리 시도 → 위 조건에서 처리됨) */
+  }
+  part.detached=!part.detached; part.flash=1; Snd.pop();
+  burst(hits[0].point,6,0xf2d492);
+}
+el.addEventListener('pointerdown',e=>{
+  el.setPointerCapture(e.pointerId);
+  Snd.resume();
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  /* 마우스 우클릭/휠클릭(버튼 2·1)은 어느 모드에서든 회전 */
+  const forceOrbit=(e.pointerType==='mouse'&&e.button!==0);
+  if(pointers.size===1){
+    lastX=e.clientX;lastY=e.clientY;lastHit=null;
+    tapInfo={x:e.clientX,y:e.clientY,t:performance.now()};
+    if(mode==='clean'&&!forceOrbit){
+      /* 유물 위에서 시작하면 세척, 빈 곳이면 회전 */
+      const hits=raycastAt(e);
+      dragKind=hits.length?'clean':'orbit';
+      if(dragKind==='clean'){cleanAt(e);updateToolCursor(e);}
+    }else dragKind='orbit';
+  }else if(pointers.size===2){
+    Snd.stopClean();
+    const p=[...pointers.values()];
+    pinchD=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+    lastCX=(p[0].x+p[1].x)/2; lastCY=(p[0].y+p[1].y)/2;
+    tapInfo=null; lastHit=null;
+  }
+});
+el.addEventListener('pointermove',e=>{
+  if(!pointers.has(e.pointerId))return;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===2){
+    /* 두 손가락: 핀치 줌 + 드래그 회전 (청소 모드에서도) */
+    const p=[...pointers.values()];
+    const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+    if(pinchD>0){camR=Math.max(1.8,Math.min(6.5,camR*pinchD/d));camRTarget=camR;}
+    pinchD=d;
+    const cx=(p[0].x+p[1].x)/2, cy=(p[0].y+p[1].y)/2;
+    camTheta-=(cx-lastCX)*0.006;
+    camPhi=Math.max(0.04,Math.min(Math.PI-0.04,camPhi-(cy-lastCY)*0.005));
+    lastCX=cx; lastCY=cy;
+    return;
+  }
+  const dx=e.clientX-lastX, dy=e.clientY-lastY;
+  lastX=e.clientX;lastY=e.clientY;
+  if(mode==='clean'&&dragKind==='clean'){cleanAt(e);updateToolCursor(e);}
+  else{
+    Snd.stopClean();
+    if(mode==='clean')updateToolCursor(e);
+    camTheta-=dx*0.0065;
+    camPhi=Math.max(0.04,Math.min(Math.PI-0.04,camPhi-dy*0.005));
+  }
+  if(tapInfo&&Math.hypot(e.clientX-tapInfo.x,e.clientY-tapInfo.y)>10)tapInfo=null;
+});
+function endPointer(e){
+  pointers.delete(e.pointerId);
+  pinchD=0;lastHit=null;dragKind=null;
+  if(pointers.size===0)Snd.stopClean();
+  if(e.pointerType!=='mouse'){toolCursor.visible=false;cursorRing.visible=false;lastCleanHit=null;}
+  if(tapInfo&&performance.now()-tapInfo.t<420){
+    if(mode==='explode')tryExplodeTap(e);
+  }
+  tapInfo=null;
+}
+el.addEventListener('pointerup',endPointer);
+el.addEventListener('pointercancel',endPointer);
+
+/* ===== PC 전용 조작 ===== */
+/* 마우스 휠로 확대/축소 */
+el.addEventListener('wheel',e=>{
+  e.preventDefault();
+  camRTarget=Math.max(1.8,Math.min(6.5,camRTarget+Math.sign(e.deltaY)*0.4));
+},{passive:false});
+/* 우클릭 컨텍스트 메뉴 차단(우클릭 회전을 위해) */
+el.addEventListener('contextmenu',e=>e.preventDefault());
+/* 호버 시 커서 모양: 청소 모드에서 유물 위=조준, 그 외=이동 */
+el.addEventListener('pointermove',e=>{
+  if(e.pointerType!=='mouse'||pointers.size>0)return;
+  if(mode==='clean'){
+    const hits=raycastAt(e);
+    el.style.cursor=hits.length?'crosshair':'grab';
+    updateToolCursor(e);
+  }else if(mode==='explode'){
+    const hits=raycastAt(e);
+    const part=hits.length&&hits[0].object.userData.part;
+    el.style.cursor=(part&&part.name!=='몸통'&&part.name!=='본체')?'pointer':'grab';
+  }else{
+    el.style.cursor='grab';
+  }
+});
+el.addEventListener('pointerdown',()=>{if(el.style.cursor==='grab')el.style.cursor='grabbing';});
+el.addEventListener('pointerup',()=>{if(el.style.cursor==='grabbing')el.style.cursor='grab';});
+
+/* =========================================================
+   후처리 — 블룸(금속 하이라이트가 은은히 빛남)
+========================================================= */
+let composer=null, bloomPass=null;
+(function setupPost(){
+  if(!THREE.EffectComposer||!THREE.RenderPass||!THREE.UnrealBloomPass)return; // 애드온 미로드 시 기본 렌더
+  composer=new THREE.EffectComposer(renderer);
+  composer.addPass(new THREE.RenderPass(scene,camera));
+  bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.42,0.7,0.85);
+  composer.addPass(bloomPass);
+  composer.setSize(innerWidth,innerHeight);
+  composer.setPixelRatio(Math.min(devicePixelRatio,2));
+})();
+addEventListener('resize',()=>{if(composer){composer.setSize(innerWidth,innerHeight);}});
+
+/* =========================================================
+   메인 루프
+========================================================= */
+const clock=new THREE.Clock();
+const smooth=t=>t*t*(3-2*t);
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(0.05,clock.getDelta());
+  if(active){
+    /* 파트 분해/조립 */
+    for(const part of active.parts){
+      const target=part.detached?1:0;
+      if(part.t!==target){
+        part.t+=(target>part.t?1:-1)*dt*(part.isScrew?1.8:2.4);
+        part.t=Math.max(0,Math.min(1,part.t));
+        const s=smooth(part.t);
+        part.group.position.lerpVectors(part.home,part.home.clone().add(part.out),s);
+        part.group.rotation.set(
+          part.homeRot.x+part.outRot.x*s,
+          part.homeRot.y+part.outRot.y*s,
+          part.homeRot.z+part.outRot.z*s);
+      }
+      if(part.flash>0){
+        part.flash=Math.max(0,part.flash-dt*2.5);
+        const c=part.flashCol||{r:.45,g:.33,b:.1};
+        for(const m of part.meshes)m.material.emissive.setRGB(c.r*part.flash,c.g*part.flash,c.b*part.flash);
+        if(part.flash===0)part.flashCol=null;
+      }
+    }
+    /* 🔍 히트맵: 남은 오염이 많은 면일수록 붉게 맥동 (플래시 중인 파트는 제외) */
+    if(heat){
+      const pulse=0.5+0.5*Math.sin(performance.now()*0.005);
+      for(const part of active.parts){
+        if(part.flash>0)continue;
+        for(const m of part.meshes){
+          const ds=m.material&&m.userData.ds;
+          if(!ds){m.material&&m.material.emissive.setRGB(0,0,0);continue;}
+          const r=Math.max(0,(ds.remain||0)-0.04);
+          m.material.emissive.setRGB(0.55*r*pulse,0.05*r*pulse,0.02*r*pulse);
+        }
+      }
+    }else{
+      /* 히트맵 꺼짐: 플래시 아닌 파트의 잔광 제거 */
+      for(const part of active.parts){
+        if(part.flash>0)continue;
+        for(const m of part.meshes) if(m.material&&m.material.emissive) m.material.emissive.setRGB(0,0,0);
+      }
+    }
+    active.root.position.y=active.baseY;
+    for(const ds of active.dss)ds.composite();
+  }
+  updateBursts(dt);
+  updateJet(dt);
+  camR+=(camRTarget-camR)*Math.min(1,dt*8);
+  placeCamera();
+  if(composer)composer.render(); else renderer.render(scene,camera);
+}
+/* 모든 유물 메시에 그림자 캐스트/리시브 보장 */
+for(const id in antiques){
+  antiques[id].root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+}
+selectAntique('watch');
+animate();
+requestAnimationFrame(()=>{const l=$('#loading');l.style.opacity=0;setTimeout(()=>l.remove(),550);});
+</script>
+</body>
+</html>

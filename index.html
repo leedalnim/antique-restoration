@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>금동미륵보살반가사유상 복원</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0f0b07;
+  --parch:#ece0bf; --parch-line:#7a5a28; --parch-text:#38240e;
+  --gold-a:#f6d27c; --gold-b:#bf8c34; --brass-bright:#f2d492; --paper:#f4e9cf;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none}
+button{appearance:none;-webkit-appearance:none;font:inherit}
+html,body{position:fixed;inset:0;width:100%;height:100%;overflow:hidden;
+  overscroll-behavior:none;touch-action:none;background:var(--ink)}
+body{font-family:'Gowun Batang',serif;color:var(--paper);
+  background:radial-gradient(120% 90% at 50% 18%, #2c2013 0%, #17110a 52%, #0a0704 100%)}
+#stage{position:fixed;inset:0;touch-action:none}
+canvas{display:block;cursor:grab}
+#top{position:fixed;top:0;left:0;right:0;padding:calc(9px + env(safe-area-inset-top)) 12px 0;
+  display:flex;align-items:center;gap:10px;pointer-events:none;z-index:5}
+#title{display:flex;flex-direction:column;text-shadow:0 2px 4px rgba(0,0,0,.8);pointer-events:none}
+#title h1{font-family:'Nanum Myeongjo',serif;font-weight:800;font-size:15px;letter-spacing:.06em;color:var(--brass-bright);white-space:nowrap}
+#title span{font-size:8.5px;letter-spacing:.2em;color:#cfb98c}
+#spacer{flex:1}
+#selBtn{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:5px;
+  border:2px solid var(--parch-line);background:var(--parch);color:var(--parch-text);
+  font-size:13.5px;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.55);pointer-events:auto}
+#selBtn .em{font-size:17px}
+#selBtn .mini{width:16px;height:16px;border-radius:50%;background:#3f6b3a;border:1px solid #b8e2a8;
+  color:#eaffe2;font-size:10px;line-height:15px;text-align:center;display:none}
+#selBtn.complete .mini{display:inline-block}
+/* 하단 바 */
+#dock{position:fixed;left:0;right:0;bottom:0;z-index:5;
+  padding:0 10px calc(10px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;gap:8px;pointer-events:none}
+#bar2{display:flex;align-items:stretch;gap:8px;pointer-events:auto}
+#modes{display:flex;border-radius:6px;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,.55);border:2px solid var(--parch-line)}
+.mode{padding:0 16px;font-size:14px;font-weight:700;color:var(--parch-text);background:var(--parch);
+  cursor:pointer;display:flex;align-items:center;gap:5px;border-right:1px solid rgba(107,78,34,.45);min-height:52px}
+.mode:last-child{border-right:0}
+.mode.on{background:linear-gradient(180deg,var(--gold-a),var(--gold-b));color:#1d1204}
+#toolBtn{display:none;align-items:center;gap:8px;padding:0 14px;border-radius:6px;
+  border:2px solid var(--parch-line);background:var(--parch);color:var(--parch-text);
+  font-size:14px;font-weight:700;cursor:pointer;min-height:52px;box-shadow:0 3px 10px rgba(0,0,0,.55)}
+#toolBtn.show{display:flex}
+#toolBtn .em{font-size:20px}
+#toolBtn .chev{font-size:10px;opacity:.6}
+#plaque{flex:1;background:linear-gradient(180deg,#4a3819,#281c0d);border:2px solid rgba(222,182,98,.55);
+  border-radius:6px;padding:6px 12px 7px;box-shadow:inset 0 1px 0 rgba(242,212,146,.25),0 3px 10px rgba(0,0,0,.5);
+  min-width:96px;display:flex;flex-direction:column;justify-content:center}
+#plaque .row{display:flex;justify-content:space-between;align-items:baseline}
+#plaque .label{font-size:9.5px;letter-spacing:.14em;color:#e2cd9c;font-weight:700}
+#plaque .pct{font-family:'Nanum Myeongjo',serif;font-weight:800;font-size:16px;color:var(--brass-bright)}
+#bar{margin-top:4px;height:6px;border-radius:3px;background:rgba(0,0,0,.6);overflow:hidden;border:1px solid rgba(222,182,98,.35)}
+#fill{height:100%;width:0%;background:linear-gradient(90deg,#9a7530,#f2d492);transition:width .35s}
+#toolPop{position:fixed;left:10px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:6;
+  display:none;flex-direction:column;gap:6px;pointer-events:auto}
+#toolPop.open{display:flex;animation:rise .18s ease}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.tool{display:flex;align-items:center;gap:10px;min-width:190px;padding:11px 13px;
+  border-radius:6px;border:2px solid var(--parch-line);background:rgba(236,224,191,.98);color:var(--parch-text);
+  font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.tool .em{font-size:22px}
+.tool .txt{display:flex;flex-direction:column;line-height:1.2;text-align:left}
+.tool small{color:#6b5330;font-size:10.5px;font-weight:400}
+.tool.on{background:linear-gradient(180deg,var(--gold-a),var(--gold-b));border-color:#fff3d4}
+.tool.on small{color:#4d3810}
+#helpBtn{position:fixed;left:12px;top:calc(58px + env(safe-area-inset-top));z-index:5;pointer-events:auto;
+  width:34px;height:34px;border-radius:50%;border:2px solid var(--parch-line);background:var(--parch);
+  color:var(--parch-text);font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.5)}
+#hint{position:fixed;left:50%;top:15%;transform:translateX(-50%);z-index:6;
+  max-width:90%;text-align:center;font-size:13px;line-height:1.55;color:#f0e4c8;pointer-events:none;
+  background:rgba(6,4,2,.92);border:1px solid rgba(222,182,98,.45);border-radius:6px;padding:9px 16px;
+  box-shadow:0 6px 20px rgba(0,0,0,.55);opacity:0;transition:opacity .4s}
+#hint.show{opacity:1}
+#hint b{color:var(--brass-bright);font-weight:700}
+#sidebtns{position:fixed;right:10px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;gap:8px}
+.sbtn{width:46px;height:46px;border-radius:50%;border:2px solid var(--parch-line);
+  background:var(--parch);color:var(--parch-text);font-size:22px;font-weight:700;line-height:1;
+  cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;
+  transition:transform .1s, background .15s}
+.sbtn.on{background:linear-gradient(180deg,var(--gold-a),var(--gold-b));border-color:#fff3d4}
+.sbtn:active{transform:scale(.9)}
+#resetBtn{font-size:25px}
+#toast{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%) scale(.9);z-index:8;
+  background:rgba(70,14,10,.94);color:#ffe2d6;border:1.5px solid #d88a72;border-radius:6px;
+  padding:11px 20px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;
+  transition:opacity .2s, transform .2s;box-shadow:0 8px 24px rgba(0,0,0,.6)}
+#toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#doneCard{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9;pointer-events:none}
+#doneCard.show{display:flex}
+#doneCard .card{background:linear-gradient(180deg,#f4e6c0,#cfa95e);color:#241704;border:2px solid #fff3d4;
+  border-radius:5px;padding:22px 36px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.65);
+  animation:pop .55s cubic-bezier(.2,1.4,.4,1)}
+#doneCard h2{font-family:'Nanum Myeongjo',serif;font-weight:800;font-size:22px;letter-spacing:.1em}
+#doneCard p{margin-top:6px;font-size:13px}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+#credit{position:fixed;left:10px;bottom:calc(74px + env(safe-area-inset-bottom));z-index:4;
+  font-size:9.5px;letter-spacing:.03em;color:#9a8256;pointer-events:none;text-shadow:0 1px 2px #000;max-width:52%}
+#loading{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+  background:var(--ink);color:#d8ad58;letter-spacing:.3em;font-size:13px;transition:opacity .5s}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+
+<div id="top">
+  <div id="title"><h1>골동품 복원 공방</h1><span>ATELIER DE RESTAURATION</span></div>
+  <div id="spacer"></div>
+  <button id="selBtn">
+    <span class="em">🧘</span>
+    <span class="nm">금동미륵보살반가사유상</span>
+    <span class="mini">✓</span>
+  </button>
+</div>
+
+<button id="helpBtn" aria-label="도움말">?</button>
+<div id="hint"></div>
+
+<div id="dock">
+  <div id="bar2">
+    <div id="modes">
+      <button class="mode on" data-mode="rotate">🔄 회전</button>
+      <button class="mode" data-mode="clean">🧽 청소</button>
+    </div>
+    <button id="toolBtn"><span class="em" id="toolBtnEm">🖌️</span><span id="toolBtnNm">세척솔</span><span class="chev">▲</span></button>
+    <div id="plaque">
+      <div class="row"><span class="label">복원</span><span class="pct" id="pct">0%</span></div>
+      <div id="bar"><div id="fill"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="toolPop">
+  <button class="tool" data-tool="blow"><span class="em">🌬️</span><span class="txt">에어블로워<small>흙먼지를 넓게 날림</small></span></button>
+  <button class="tool on" data-tool="brush"><span class="em">🖌️</span><span class="txt">세척솔<small>녹·때를 쓸어냄</small></span></button>
+  <button class="tool" data-tool="swab"><span class="em">🧼</span><span class="txt">면봉<small>좁은 틈만 콕콕</small></span></button>
+</div>
+
+<div id="toast"></div>
+
+<div id="sidebtns">
+  <button class="sbtn" id="zoomIn" aria-label="확대">＋</button>
+  <button class="sbtn" id="zoomOut" aria-label="축소">－</button>
+  <button class="sbtn" id="heatBtn" aria-label="오염표시">🔍</button>
+  <button class="sbtn" id="resetBtn" aria-label="제자리">⟲</button>
+</div>
+
+<div id="credit">3D 데이터: 국가유산청 · 공공누리 제1유형(출처표시)</div>
+<div id="doneCard"><div class="card"><h2>✦ 복원 완료 ✦</h2><p id="doneName"></p></div></div>
+<div id="loading">공 방 준 비 중 …</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script>
+'use strict';
+/* =========================================================
+   금동미륵보살반가사유상 복원 — 실제 국가유산청 3D 스캔(공공누리1)
+   · glb 로드 + PBR(C/M/N) + 오염 셰이더(문지르면 녹·때가 벗겨짐)
+========================================================= */
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+['touchmove','gesturestart','gesturechange','gestureend'].forEach(ev=>
+  document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('dblclick',e=>e.preventDefault());
+
+/* ---------- 사운드 (WebAudio 실시간 합성) ---------- */
+const Snd=(function(){
+  let ac=null, noiseBuf=null, cleanNode=null;
+  function ctx(){
+    if(!ac){
+      ac=new (window.AudioContext||window.webkitAudioContext)();
+      const len=ac.sampleRate*1.2, b=ac.createBuffer(1,len,ac.sampleRate), d=b.getChannelData(0);
+      for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+      noiseBuf=b;
+    }
+    if(ac.state==='suspended')ac.resume();
+    return ac;
+  }
+  const PROF={
+    blow:{type:'highpass',freq:2600,q:0.7,gain:0.16},
+    brush:{type:'bandpass',freq:1500,q:1.1,gain:0.2},
+    swab:{type:'bandpass',freq:2400,q:3.5,gain:0.16},
+  };
+  function ensureClean(tool){
+    const a=ctx(), p=PROF[tool];
+    if(cleanNode&&cleanNode.tool===tool)return cleanNode;
+    stopClean();
+    const src=a.createBufferSource(); src.buffer=noiseBuf; src.loop=true;
+    const filt=a.createBiquadFilter(); filt.type=p.type; filt.frequency.value=p.freq; filt.Q.value=p.q;
+    const g=a.createGain(); g.gain.value=0;
+    src.connect(filt); filt.connect(g); g.connect(a.destination);
+    src.start();
+    cleanNode={src,filt,g,tool,base:p.gain};
+    return cleanNode;
+  }
+  function keepClean(tool,intensity){
+    const n=ensureClean(tool), a=ctx();
+    const target=n.base*Math.min(1,0.3+intensity);
+    n.g.gain.setTargetAtTime(target,a.currentTime,0.03);
+    n.filt.frequency.setTargetAtTime(PROF[tool].freq*(0.85+Math.random()*0.35),a.currentTime,0.04);
+  }
+  function stopClean(){
+    if(!cleanNode)return;
+    const a=ac, n=cleanNode; cleanNode=null;
+    try{n.g.gain.setTargetAtTime(0,a.currentTime,0.05);
+      setTimeout(()=>{try{n.src.stop();}catch(e){}},180);}catch(e){}
+  }
+  function ping(freq,dur,type,vol){
+    const a=ctx();
+    const o=a.createOscillator(), g=a.createGain();
+    o.type=type||'triangle'; o.frequency.value=freq;
+    g.gain.value=0; o.connect(g); g.connect(a.destination);
+    const t=a.currentTime;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol||0.14,t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+(dur||0.15));
+    o.start(t); o.stop(t+(dur||0.15)+0.02);
+  }
+  return {
+    keepClean,stopClean,
+    pop(){ping(300,0.12,'sine',0.16);},
+    win(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>ping(f,0.22,'triangle',0.13),i*110));},
+    resume(){ctx();},
+  };
+})();
+
+/* ---------- 렌더러 / 씬 ---------- */
+const stage=$('#stage');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.0;
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+stage.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(46,innerWidth/innerHeight,0.05,60);
+const camTarget=new THREE.Vector3(0,0.15,0);
+let camR=3.5, camTheta=0.5, camPhi=1.12, camRTarget=camR;
+function placeCamera(){
+  camera.position.set(
+    camTarget.x+camR*Math.sin(camPhi)*Math.sin(camTheta),
+    camTarget.y+camR*Math.cos(camPhi),
+    camTarget.z+camR*Math.sin(camPhi)*Math.cos(camTheta));
+  camera.lookAt(camTarget);
+}
+placeCamera();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+
+/* 조명 — 스튜디오 3점 + 스팟 */
+scene.add(new THREE.HemisphereLight(0xffe9c8,0x1c130a,0.4));
+const key=new THREE.DirectionalLight(0xfff1d6,1.55);
+key.position.set(2.6,4.2,2.2); key.castShadow=true;
+key.shadow.mapSize.set(2048,2048);
+key.shadow.camera.near=0.5; key.shadow.camera.far=14;
+key.shadow.camera.left=-3; key.shadow.camera.right=3;
+key.shadow.camera.top=3; key.shadow.camera.bottom=-3;
+key.shadow.bias=-0.0006; key.shadow.radius=4;
+scene.add(key);
+const rimL=new THREE.DirectionalLight(0xd8b06a,0.8); rimL.position.set(-3,2,-2.5); scene.add(rimL);
+const under=new THREE.DirectionalLight(0xcaa96a,0.35); under.position.set(0,-3,1); scene.add(under);
+const spot=new THREE.SpotLight(0xfff5dc,1.2,22,Math.PI/5,0.5,1);
+spot.position.set(0.6,5,1.8); spot.target.position.set(0,0.2,0);
+spot.castShadow=true; spot.shadow.mapSize.set(1024,1024); spot.shadow.bias=-0.0008;
+scene.add(spot); scene.add(spot.target);
+const fillL=new THREE.PointLight(0xffe0b0,0.3,12); fillL.position.set(0,1.2,3.2); scene.add(fillL);
+
+/* IBL 환경(PMREM) — 금속 반사가 실감나게 */
+(function makeEnvIBL(){
+  const S=256, c=document.createElement('canvas'); c.width=S; c.height=S;
+  const g=c.getContext('2d');
+  const gr=g.createLinearGradient(0,0,0,S);
+  gr.addColorStop(0.0,'#fff7e6'); gr.addColorStop(0.32,'#e9cf9c');
+  gr.addColorStop(0.52,'#8c7048'); gr.addColorStop(0.75,'#2e2214'); gr.addColorStop(1.0,'#0a0705');
+  g.fillStyle=gr; g.fillRect(0,0,S,S);
+  const soft=(x,y,w,h,a)=>{const rg=g.createRadialGradient(x,y,0,x,y,Math.max(w,h));
+    rg.addColorStop(0,`rgba(255,250,235,${a})`);rg.addColorStop(1,'rgba(255,250,235,0)');
+    g.fillStyle=rg;g.save();g.translate(x,y);g.scale(w/Math.max(w,h),h/Math.max(w,h));
+    g.beginPath();g.arc(0,0,Math.max(w,h),0,7);g.fill();g.restore();};
+  soft(S*0.3,S*0.2,S*0.28,S*0.12,0.9); soft(S*0.72,S*0.16,S*0.2,S*0.1,0.7); soft(S*0.5,S*0.42,S*0.5,S*0.06,0.35);
+  const tex=new THREE.CanvasTexture(c);
+  tex.mapping=THREE.EquirectangularReflectionMapping; tex.encoding=THREE.sRGBEncoding;
+  const pmrem=new THREE.PMREMGenerator(renderer); pmrem.compileEquirectangularShader();
+  scene.environment=pmrem.fromEquirectangular(tex).texture;
+  tex.dispose(); pmrem.dispose();
+})();
+
+/* 아래쪽 은은한 후광(받침대 없음, 허공에 뜬 느낌) */
+(function halo(){
+  const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d');
+  const gr=g.createRadialGradient(64,64,0,64,64,64);
+  gr.addColorStop(0,'rgba(210,170,96,0.28)'); gr.addColorStop(.6,'rgba(150,110,60,0.08)'); gr.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=gr; g.fillRect(0,0,128,128);
+  const tx=new THREE.CanvasTexture(c); tx.encoding=THREE.sRGBEncoding;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(3.4,3.4),
+    new THREE.MeshBasicMaterial({map:tx,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+  m.rotation.x=-Math.PI/2; m.position.y=-1.15; scene.add(m);
+})();
+
+const raycaster=new THREE.Raycaster();
+
+/* =========================================================
+   값 노이즈 + 개더티 오염 텍스처(부식 청동 녹·흙때)
+========================================================= */
+function makeNoise(S,seed){
+  const g=Math.ceil(S/8)+2; const r=[];
+  let s=seed||1; const rnd=()=>{s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff;};
+  for(let i=0;i<g*g;i++) r.push(rnd());
+  const at=(x,y)=>r[((y%g)+g)%g*g+((x%g)+g)%g];
+  const sm=(x,y)=>{const fx=Math.floor(x),fy=Math.floor(y),tx=x-fx,ty=y-fy;
+    const u=tx*tx*(3-2*tx),v=ty*ty*(3-2*ty);
+    return at(fx,fy)*(1-u)*(1-v)+at(fx+1,fy)*u*(1-v)+at(fx,fy+1)*(1-u)*v+at(fx+1,fy+1)*u*v;};
+  return (x,y)=>{ let f=0,a=0.5,sc=1/14; for(let o=0;o<5;o++){f+=a*sm(x*sc,y*sc);sc*=2;a*=0.5;} return f; };
+}
+function makeDirtCanvas(S){
+  const c=document.createElement('canvas'); c.width=c.height=S; const x=c.getContext('2d');
+  const img=x.createImageData(S,S); const d=img.data;
+  const n1=makeNoise(S,7), n2=makeNoise(S,31), n3=makeNoise(S,99);
+  for(let j=0;j<S;j++)for(let i=0;i<S;i++){
+    const k=(j*S+i)*4;
+    let grime=n1(i,j), green=n2(i*1.7,j*1.7);
+    let crust=Math.pow(n3(i*3,j*3),1.4);
+    let soil=Math.pow(n1(i*0.9+120,j*0.9+120),1.2);
+    let R= 8 + green*15 + soil*24 - crust*16;
+    let G= 11 + green*27 + soil*16 - crust*20;
+    let B= 6 + green*11 + soil*7  - crust*11;
+    const dust=Math.pow(n1(i*2.3+50,j*2.3+50),6);
+    R+=dust*24; G+=dust*24; B+=dust*16;
+    let a = 0.9 + 0.1*grime + 0.1*crust - 0.05*Math.pow(dust,0.5);
+    a=Math.max(0.7,Math.min(1,a));
+    d[k]=Math.max(0,Math.min(255,R|0)); d[k+1]=Math.max(0,Math.min(255,G|0));
+    d[k+2]=Math.max(0,Math.min(255,B|0)); d[k+3]=(a*255)|0;
+  }
+  x.putImageData(img,0,0);
+  return c;
+}
+
+/* =========================================================
+   유물(반가사유상) 로드 + 오염 셰이더
+========================================================= */
+let active=null;         /* CleanTarget */
+let dirtUniforms=null;   /* 셰이더 uniform 참조(히트맵용) */
+const DIRT_S=1024;
+
+function buildCleanTarget(mesh,group){
+  const dirtCanvas=makeDirtCanvas(DIRT_S);
+  const dctx=dirtCanvas.getContext('2d');
+  const dirtTex=new THREE.CanvasTexture(dirtCanvas); dirtTex.flipY=false;
+  const small=document.createElement('canvas'); small.width=small.height=96;
+  const sctx=small.getContext('2d');
+  function sample(){
+    sctx.clearRect(0,0,96,96); sctx.drawImage(dirtCanvas,0,0,96,96);
+    const d=sctx.getImageData(0,0,96,96).data; let sum=0;
+    for(let i=3;i<d.length;i+=4) sum+=d[i];
+    return sum/(96*96*255);
+  }
+  const t={
+    mesh, group, dirtCanvas, dctx, dirtTex, S:DIRT_S,
+    name:'금동미륵보살반가사유상',
+    dirtyStat:false, done:false, pct:0, remain:1, initRemain:1,
+    brush(u,v,rPx){
+      const x=u*DIRT_S, y=v*DIRT_S;
+      dctx.globalCompositeOperation='destination-out';
+      const g=dctx.createRadialGradient(x,y,0,x,y,rPx);
+      g.addColorStop(0,'rgba(0,0,0,1)'); g.addColorStop(0.55,'rgba(0,0,0,0.9)'); g.addColorStop(1,'rgba(0,0,0,0)');
+      dctx.fillStyle=g; dctx.beginPath(); dctx.arc(x,y,rPx,0,7); dctx.fill();
+      dctx.globalCompositeOperation='source-over';
+      this.dirtyStat=true; dirtTex.needsUpdate=true;
+    },
+    sample,
+  };
+  t.initRemain=sample();
+  return t;
+}
+
+function applyMaterial(mesh,dirtTex){
+  const tl=new THREE.TextureLoader();
+  const Tx=(u,srgb)=>{const tt=tl.load(u);tt.flipY=false;if(srgb)tt.encoding=THREE.sRGBEncoding;tt.anisotropy=8;return tt;};
+  const C=Tx('tex_in/T_24RE0001_C.png',true), M=Tx('tex_in/T_24RE0001_M.png',false), N=Tx('tex_in/T_24RE0001_N.png',false);
+  const mat=new THREE.MeshStandardMaterial({map:C,normalMap:N,metalnessMap:M,roughnessMap:M,metalness:1,roughness:1,envMapIntensity:1.1});
+  mat.onBeforeCompile=(sh)=>{
+    sh.uniforms.uDirt={value:dirtTex};
+    sh.uniforms.uHeat={value:0};
+    dirtUniforms=sh.uniforms;
+    sh.fragmentShader='uniform sampler2D uDirt;\nuniform float uHeat;\n'+sh.fragmentShader
+      .replace('#include <map_fragment>',
+        `#include <map_fragment>
+         vec4 dcolG = texture2D(uDirt, vUv);
+         diffuseColor.rgb = mix(diffuseColor.rgb, dcolG.rgb, dcolG.a);`)
+      .replace('#include <roughnessmap_fragment>',
+        `#include <roughnessmap_fragment>
+         roughnessFactor = mix(roughnessFactor, 0.97, dcolG.a);`)
+      .replace('#include <metalnessmap_fragment>',
+        `#include <metalnessmap_fragment>
+         metalnessFactor = mix(metalnessFactor, 0.0, dcolG.a);`)
+      .replace('#include <dithering_fragment>',
+        `#include <dithering_fragment>
+         gl_FragColor.rgb += uHeat * dcolG.a * vec3(0.55,0.06,0.03);`);
+  };
+  mat.customProgramCacheKey=()=>'buddha-dirt';
+  mesh.material=mat;
+  return mat;
+}
+
+const loader=new THREE.GLTFLoader();
+loader.load('khs_buddha.glb',(gltf)=>{
+  const obj=gltf.scene;
+  let mesh=null; obj.traverse(o=>{ if(o.isMesh&&!mesh) mesh=o; });
+  // 스케일/센터링 → 씬 규격(높이 약 2.3)
+  const box=new THREE.Box3().setFromObject(obj);
+  const size=box.getSize(new THREE.Vector3()), ctr=box.getCenter(new THREE.Vector3());
+  const s=2.3/size.y;
+  obj.position.set(-ctr.x,-ctr.y,-ctr.z);
+  const group=new THREE.Group(); group.add(obj); group.scale.setScalar(s);
+  group.position.y=0.15;
+  group.traverse(o=>{ if(o.isMesh){o.castShadow=true;o.receiveShadow=true;} });
+  scene.add(group);
+
+  active=buildCleanTarget(mesh,group);
+  applyMaterial(mesh,active.dirtTex);
+
+  updateProgressUI();
+  setHint();
+  const l=$('#loading'); if(l){l.style.opacity=0;setTimeout(()=>l.remove(),550);}
+},undefined,(err)=>{
+  console.error('glb load failed',err);
+  const l=$('#loading'); if(l) l.textContent='모델 로드 실패 — 파일 경로를 확인하세요';
+});
+
+/* =========================================================
+   상태 / UI
+========================================================= */
+let mode='rotate';
+let tool='brush';
+const TOOLS={
+  blow:{wr:0.17,pn:9},
+  brush:{wr:0.10,pn:5},
+  swab:{wr:0.045,pn:2},
+};
+const isTouch=('ontouchstart' in window)&&navigator.maxTouchPoints>0;
+const HINTS=isTouch?{
+  rotate:'드래그로 <b>회전</b> · 두 손가락 <b>확대</b> · 우측 <b>＋ － ⟲</b>',
+  clean:'유물을 <b>문지르면</b> 녹·때가 벗겨집니다 · 빈 곳 드래그로 회전',
+}:{
+  rotate:'좌드래그로 <b>회전</b> · <b>휠</b> 확대축소 · 우측 <b>＋ － ⟲</b>',
+  clean:'유물 위를 <b>문질러</b> 세척 · <b>빈 곳/우클릭 드래그</b>로 회전',
+};
+function setHint(){ $('#hint').innerHTML=HINTS[mode]; showHint(); }
+let hintTimer=0;
+function showHint(){ $('#hint').classList.add('show'); clearTimeout(hintTimer); hintTimer=setTimeout(()=>$('#hint').classList.remove('show'),4200); }
+$('#helpBtn').onclick=()=>{ const h=$('#hint'); if(h.classList.contains('show')){h.classList.remove('show');clearTimeout(hintTimer);} else showHint(); };
+let toastTimer=0;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1400); }
+
+$$('.mode').forEach(b=>b.onclick=()=>{
+  mode=b.dataset.mode;
+  $$('.mode').forEach(x=>x.classList.toggle('on',x===b));
+  $('#toolBtn').classList.toggle('show',mode==='clean');
+  if(mode!=='clean'){closeToolPop();toolCursor.visible=false;cursorRing.visible=false;}
+  setHint();
+});
+
+const TOOLNAME={blow:'블로워',brush:'세척솔',swab:'면봉'};
+const TOOLEM={blow:'🌬️',brush:'🖌️',swab:'🧼'};
+function openToolPop(){$('#toolPop').classList.add('open');}
+function closeToolPop(){$('#toolPop').classList.remove('open');}
+$('#toolBtn').onclick=(e)=>{e.stopPropagation();$('#toolPop').classList.contains('open')?closeToolPop():openToolPop();};
+$$('.tool').forEach(b=>b.onclick=()=>{
+  tool=b.dataset.tool;
+  $$('.tool').forEach(x=>x.classList.toggle('on',x===b));
+  $('#toolBtnEm').textContent=TOOLEM[tool];
+  $('#toolBtnNm').textContent=TOOLNAME[tool];
+  closeToolPop();
+});
+document.addEventListener('pointerdown',e=>{
+  if(!$('#toolPop').contains(e.target)&&e.target!==$('#toolBtn')&&!$('#toolBtn').contains(e.target))closeToolPop();
+});
+
+$('#zoomIn').onclick=()=>{camRTarget=Math.max(1.8,camRTarget-0.55);};
+$('#zoomOut').onclick=()=>{camRTarget=Math.min(6.5,camRTarget+0.55);};
+let heat=false;
+$('#heatBtn').onclick=()=>{ heat=!heat; $('#heatBtn').classList.toggle('on',heat); toast(heat?'🔍 남은 오염 표시 켜짐':'🔍 오염 표시 꺼짐'); };
+$('#resetBtn').onclick=()=>{ Snd.stopClean(); camTheta=0.5;camPhi=1.12;camRTarget=3.5; toast('⟲ 제자리로 되돌렸습니다'); };
+
+function updateProgressUI(){
+  if(!active)return;
+  const pct=Math.max(0,Math.min(100,(1-active.remain/active.initRemain)*100));
+  active.pct=pct;
+  $('#pct').textContent=pct.toFixed(0)+'%';
+  $('#fill').style.width=pct+'%';
+  if(pct>=97&&!active.done){
+    active.done=true;
+    $('#selBtn').classList.add('complete');
+    $('#doneName').textContent='「금동미륵보살반가사유상」이(가) 본래의 빛을 되찾았습니다';
+    const card=$('#doneCard'); card.classList.add('show'); Snd.win();
+    setTimeout(()=>card.classList.remove('show'),2600);
+  }
+}
+setInterval(()=>{
+  if(!active)return;
+  if(active.dirtyStat){ active.remain=active.sample(); active.dirtyStat=false; updateProgressUI(); }
+},350);
+
+/* =========================================================
+   도구 3D 모델 (로컬 +Z=작업방향, 원점=팁)
+========================================================= */
+const toolCursor=new THREE.Group(); toolCursor.visible=false; scene.add(toolCursor);
+const cursorRing=new THREE.Mesh(new THREE.RingGeometry(0.78,1,40),
+  new THREE.MeshBasicMaterial({color:0xffe9b0,transparent:true,opacity:0.7,side:THREE.DoubleSide,depthWrite:false}));
+scene.add(cursorRing); cursorRing.visible=false;
+function buildTools(){
+  const M=(c,r,m)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+  const tools={};
+  { const g=new THREE.Group();
+    const bodyMat=M(0x3a3f47,0.5,0.3), accent=M(0xd8ad58,0.35,0.8), grip=M(0x1c1e22,0.7,0.1);
+    const body=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.19,0.5,20),bodyMat);
+    body.rotation.x=Math.PI/2; body.position.z=-0.42; g.add(body);
+    const nozzle=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.14,0.36,20),accent);
+    nozzle.rotation.x=Math.PI/2; nozzle.position.z=-0.13; g.add(nozzle);
+    const tip=new THREE.Mesh(new THREE.TorusGeometry(0.035,0.012,8,16),accent); tip.position.z=0.03; g.add(tip);
+    const handle=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.34,14),grip);
+    handle.position.set(0,-0.22,-0.5); handle.rotation.x=0.5; g.add(handle);
+    const trigger=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.12,0.03),accent); trigger.position.set(0,-0.11,-0.4); g.add(trigger);
+    tools.blow=g; }
+  { const g=new THREE.Group();
+    const wood=M(0x7a4e28,0.7,0.05), ferrule=M(0xc9a45c,0.3,0.85);
+    const bris=[M(0xe8d9b0,0.92,0.0),M(0xd8c48c,0.92,0.0),M(0xc9b070,0.92,0.0)];
+    const handle=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.065,0.6,16),wood);
+    handle.rotation.x=Math.PI/2; handle.position.z=-0.5; g.add(handle);
+    const fer=new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.07,0.12,18),ferrule);
+    fer.rotation.x=Math.PI/2; fer.position.z=-0.17; g.add(fer);
+    const pad=new THREE.Mesh(new THREE.CylinderGeometry(0.072,0.072,0.03,18),M(0x8a7040,0.9,0));
+    pad.rotation.x=Math.PI/2; pad.position.z=-0.11; g.add(pad);
+    const rings=[{r:0.0,n:1,splay:0},{r:0.018,n:7,splay:0.05},{r:0.034,n:13,splay:0.10},{r:0.05,n:19,splay:0.16},{r:0.066,n:26,splay:0.24}];
+    for(const ring of rings) for(let i=0;i<ring.n;i++){
+      const a=(i/ring.n)*Math.PI*2+(ring.r*7); const len=0.15+Math.random()*0.04;
+      const b=new THREE.Mesh(new THREE.CylinderGeometry(0.004,0.0028,len,5),bris[(i+Math.floor(ring.r*100))%3]);
+      b.rotation.x=Math.PI/2;
+      const holder=new THREE.Group(); holder.position.set(Math.cos(a)*ring.r,Math.sin(a)*ring.r,-0.03);
+      holder.rotation.z=Math.atan2(Math.sin(a)*ring.r,Math.cos(a)*ring.r); holder.rotateX(ring.splay);
+      b.position.z=-len*0.5+0.02; holder.add(b); g.add(holder);
+    }
+    tools.brush=g; }
+  { const g=new THREE.Group();
+    const stick=M(0xf2ede0,0.6,0.0), cotton=M(0xffffff,0.95,0.0);
+    const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.014,0.5,10),stick);
+    rod.rotation.x=Math.PI/2; rod.position.z=-0.3; g.add(rod);
+    const tip=new THREE.Mesh(new THREE.SphereGeometry(0.035,14,12),cotton); tip.scale.z=1.5; tip.position.z=-0.02; g.add(tip);
+    const back=new THREE.Mesh(new THREE.SphereGeometry(0.035,14,12),cotton); back.scale.z=1.5; back.position.z=-0.56; g.add(back);
+    tools.swab=g; }
+  return tools;
+}
+const TOOLMODELS=buildTools();
+for(const k in TOOLMODELS){TOOLMODELS[k].visible=false;toolCursor.add(TOOLMODELS[k]);}
+
+/* 분사(제트) 이펙트 */
+const jet=[];
+function jetSpray(origin,dir,tool){
+  if(jet.length>40)return;
+  const n=tool==='blow'?7:(tool==='brush'?4:2);
+  for(let i=0;i<n;i++){
+    const g=new THREE.SphereGeometry(tool==='blow'?0.02:0.014,6,6);
+    const col=tool==='blow'?0xdfe8ef:(tool==='brush'?0xcbb488:0xffffff);
+    const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.7,depthWrite:false}));
+    m.position.copy(origin);
+    const spread=tool==='blow'?0.5:0.25;
+    const v=dir.clone().multiplyScalar(tool==='blow'?2.4:1.3)
+      .add(new THREE.Vector3((Math.random()-0.5)*spread,(Math.random()-0.5)*spread,(Math.random()-0.5)*spread));
+    scene.add(m); jet.push({m,v,life:1});
+  }
+}
+function updateJet(dt){
+  for(let i=jet.length-1;i>=0;i--){
+    const j=jet[i]; j.life-=dt*3.2; j.m.position.addScaledVector(j.v,dt);
+    j.m.material.opacity=Math.max(0,j.life)*0.7; j.m.scale.multiplyScalar(1+dt*1.5);
+    if(j.life<=0){scene.remove(j.m);j.m.geometry.dispose();j.m.material.dispose();jet.splice(i,1);}
+  }
+}
+const bursts=[];
+function burst(pos,n,color){
+  if(bursts.length>26)return;
+  const g=new THREE.BufferGeometry(); const p=new Float32Array(n*3), vel=[];
+  for(let i=0;i<n;i++){p[i*3]=pos.x;p[i*3+1]=pos.y;p[i*3+2]=pos.z;
+    vel.push(new THREE.Vector3((Math.random()-0.5)*1.4,Math.random()*1.1+0.3,(Math.random()-0.5)*1.4));}
+  g.setAttribute('position',new THREE.BufferAttribute(p,3));
+  const m=new THREE.PointsMaterial({color,size:0.03,transparent:true,opacity:0.9,depthWrite:false});
+  const pts=new THREE.Points(g,m); scene.add(pts); bursts.push({pts,vel,life:1});
+}
+function updateBursts(dt){
+  for(let i=bursts.length-1;i>=0;i--){
+    const b=bursts[i]; b.life-=dt*2.2; const arr=b.pts.geometry.attributes.position;
+    for(let j=0;j<b.vel.length;j++){b.vel[j].y-=dt*2.4;
+      arr.setXYZ(j,arr.getX(j)+b.vel[j].x*dt,arr.getY(j)+b.vel[j].y*dt,arr.getZ(j)+b.vel[j].z*dt);}
+    arr.needsUpdate=true; b.pts.material.opacity=Math.max(0,b.life)*0.85;
+    if(b.life<=0){scene.remove(b.pts);b.pts.geometry.dispose();b.pts.material.dispose();bursts.splice(i,1);}
+  }
+}
+
+/* ---------- 도구 커서(표면 겨눔) ---------- */
+const _up=new THREE.Vector3(0,1,0);
+let lastCleanHit=null;
+function updateToolCursor(e){
+  if(mode!=='clean'){toolCursor.visible=false;cursorRing.visible=false;lastCleanHit=null;return;}
+  const hits=e?raycastAt(e):[];
+  if(!hits.length){toolCursor.visible=false;cursorRing.visible=false;lastCleanHit=null;return;}
+  const h=hits[0], wr=TOOLS[tool].wr;
+  const n=h.face?h.face.normal.clone().transformDirection(h.object.matrixWorld).normalize():_up.clone();
+  cursorRing.visible=true;
+  cursorRing.position.copy(h.point).addScaledVector(n,0.012);
+  cursorRing.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),n);
+  cursorRing.scale.setScalar(wr);
+  toolCursor.visible=true;
+  for(const k in TOOLMODELS)TOOLMODELS[k].visible=(k===tool);
+  const model=TOOLMODELS[tool];
+  const toCam=camera.position.clone().sub(h.point).normalize();
+  const aim=n.clone().multiplyScalar(0.65).add(toCam.clone().multiplyScalar(0.35)).normalize();
+  toolCursor.position.copy(h.point);
+  const into=aim.clone().negate();
+  toolCursor.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),into);
+  model.scale.setScalar(THREE.MathUtils.clamp(camR*0.32,0.7,1.5));
+  lastCleanHit={point:h.point.clone(),normal:n.clone(),into:into.clone()};
+}
+
+/* =========================================================
+   입력
+========================================================= */
+const pointers=new Map();
+let lastX=0,lastY=0,pinchD=0,lastCX=0,lastCY=0,tapInfo=null,lastHit=null,brushTick=0;
+let dragKind=null;
+const el=renderer.domElement;
+function ndc(e){return new THREE.Vector2((e.clientX/innerWidth)*2-1,-(e.clientY/innerHeight)*2+1);}
+function pickMeshes(){ return active?[active.mesh]:[]; }
+function raycastAt(e){ raycaster.setFromCamera(ndc(e),camera); return raycaster.intersectObjects(pickMeshes(),true); }
+const _vA=new THREE.Vector3(),_vB=new THREE.Vector3(),_vC=new THREE.Vector3();
+function pxRadius(h,worldR,S){
+  const f=h.face; if(!f)return Math.max(3,worldR*S*0.2);
+  const geo=h.object.geometry, pos=geo.attributes.position, uv=geo.attributes.uv;
+  if(!uv)return Math.max(3,worldR*S*0.2);
+  _vA.fromBufferAttribute(pos,f.a).applyMatrix4(h.object.matrixWorld);
+  _vB.fromBufferAttribute(pos,f.b).applyMatrix4(h.object.matrixWorld);
+  _vC.fromBufferAttribute(pos,f.c).applyMatrix4(h.object.matrixWorld);
+  const w1=_vA.distanceTo(_vB), w2=_vA.distanceTo(_vC);
+  const t1=Math.hypot(uv.getX(f.a)-uv.getX(f.b),uv.getY(f.a)-uv.getY(f.b));
+  const t2=Math.hypot(uv.getX(f.a)-uv.getX(f.c),uv.getY(f.a)-uv.getY(f.c));
+  let ratio=0,cnt=0;
+  if(w1>1e-6&&t1>1e-6){ratio+=t1/w1;cnt++;}
+  if(w2>1e-6&&t2>1e-6){ratio+=t2/w2;cnt++;}
+  if(!cnt)return Math.max(3,worldR*S*0.2);
+  return Math.min(90,Math.max(3,worldR*(ratio/cnt)*S));
+}
+function cleanAt(e){
+  const hits=raycastAt(e);
+  if(!hits.length||!hits[0].uv||!active){lastHit=null;return;}
+  const h=hits[0], u=h.uv.x, v=h.uv.y, T=TOOLS[tool];
+  const r=pxRadius(h,T.wr,active.S);
+  let moved=0;
+  if(lastHit){
+    let dx=u-lastHit.u,dy=v-lastHit.v;
+    const dist=Math.hypot(dx,dy)*active.S; moved=dist;
+    if(dist>r*7){ active.brush(u,v,r); }
+    else{
+      const steps=Math.min(14,Math.max(1,Math.ceil(dist/(r*0.45))));
+      for(let i=1;i<=steps;i++) active.brush(lastHit.u+dx*i/steps,lastHit.v+dy*i/steps,r);
+    }
+  }else active.brush(u,v,r);
+  lastHit={u,v};
+  Snd.keepClean(tool,Math.min(1,moved/(r*2)));
+  if(lastCleanHit){
+    const origin=lastCleanHit.point.clone().addScaledVector(lastCleanHit.normal,0.12);
+    jetSpray(origin,lastCleanHit.into,tool);
+  }
+  if(++brushTick%3===0) burst(h.point,T.pn,tool==='blow'?0xd8c49a:0x9bb37a);
+}
+el.addEventListener('pointerdown',e=>{
+  el.setPointerCapture(e.pointerId); Snd.resume();
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  const forceOrbit=(e.pointerType==='mouse'&&e.button!==0);
+  if(pointers.size===1){
+    lastX=e.clientX;lastY=e.clientY;lastHit=null;
+    tapInfo={x:e.clientX,y:e.clientY,t:performance.now()};
+    if(mode==='clean'&&!forceOrbit){
+      const hits=raycastAt(e); dragKind=hits.length?'clean':'orbit';
+      if(dragKind==='clean'){cleanAt(e);updateToolCursor(e);}
+    }else dragKind='orbit';
+  }else if(pointers.size===2){
+    Snd.stopClean();
+    const p=[...pointers.values()];
+    pinchD=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+    lastCX=(p[0].x+p[1].x)/2; lastCY=(p[0].y+p[1].y)/2; tapInfo=null; lastHit=null;
+  }
+});
+el.addEventListener('pointermove',e=>{
+  if(!pointers.has(e.pointerId))return;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===2){
+    const p=[...pointers.values()];
+    const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+    if(pinchD>0){camR=Math.max(1.8,Math.min(6.5,camR*pinchD/d));camRTarget=camR;}
+    pinchD=d;
+    const cx=(p[0].x+p[1].x)/2, cy=(p[0].y+p[1].y)/2;
+    camTheta-=(cx-lastCX)*0.006; camPhi=Math.max(0.04,Math.min(Math.PI-0.04,camPhi-(cy-lastCY)*0.005));
+    lastCX=cx; lastCY=cy; return;
+  }
+  const dx=e.clientX-lastX, dy=e.clientY-lastY; lastX=e.clientX;lastY=e.clientY;
+  if(mode==='clean'&&dragKind==='clean'){cleanAt(e);updateToolCursor(e);}
+  else{ Snd.stopClean(); if(mode==='clean')updateToolCursor(e);
+    camTheta-=dx*0.0065; camPhi=Math.max(0.04,Math.min(Math.PI-0.04,camPhi-dy*0.005)); }
+  if(tapInfo&&Math.hypot(e.clientX-tapInfo.x,e.clientY-tapInfo.y)>10)tapInfo=null;
+});
+function endPointer(e){
+  pointers.delete(e.pointerId); pinchD=0;lastHit=null;dragKind=null;
+  if(pointers.size===0)Snd.stopClean();
+  if(e.pointerType!=='mouse'){toolCursor.visible=false;cursorRing.visible=false;lastCleanHit=null;}
+  tapInfo=null;
+}
+el.addEventListener('pointerup',endPointer);
+el.addEventListener('pointercancel',endPointer);
+el.addEventListener('wheel',e=>{e.preventDefault();camRTarget=Math.max(1.8,Math.min(6.5,camRTarget+Math.sign(e.deltaY)*0.4));},{passive:false});
+el.addEventListener('contextmenu',e=>e.preventDefault());
+el.addEventListener('pointermove',e=>{
+  if(e.pointerType!=='mouse'||pointers.size>0)return;
+  if(mode==='clean'){ const hits=raycastAt(e); el.style.cursor=hits.length?'crosshair':'grab'; updateToolCursor(e); }
+  else el.style.cursor='grab';
+});
+el.addEventListener('pointerdown',()=>{if(el.style.cursor==='grab')el.style.cursor='grabbing';});
+el.addEventListener('pointerup',()=>{if(el.style.cursor==='grabbing')el.style.cursor='grab';});
+
+/* ---------- 후처리(블룸) ---------- */
+let composer=null, bloomPass=null;
+(function setupPost(){
+  if(!THREE.EffectComposer||!THREE.RenderPass||!THREE.UnrealBloomPass)return;
+  composer=new THREE.EffectComposer(renderer);
+  composer.addPass(new THREE.RenderPass(scene,camera));
+  bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.4,0.7,0.85);
+  composer.addPass(bloomPass);
+  composer.setSize(innerWidth,innerHeight);
+  composer.setPixelRatio(Math.min(devicePixelRatio,2));
+})();
+addEventListener('resize',()=>{if(composer)composer.setSize(innerWidth,innerHeight);});
+
+/* ---------- 메인 루프 ---------- */
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(0.05,clock.getDelta());
+  if(dirtUniforms) dirtUniforms.uHeat.value = heat?(0.35+0.35*Math.sin(performance.now()*0.005)):0;
+  updateBursts(dt); updateJet(dt);
+  camR+=(camRTarget-camR)*Math.min(1,dt*8);
+  placeCamera();
+  if(composer)composer.render(); else renderer.render(scene,camera);
+}
+animate();
+</script>
+</body>
+</html>
