@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>골동품 복원 공방 · 천년 신라 유물 보존처리실</title>
 <style>
-@font-face{font-family:'JeonjuWanpanbon';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2102-01@1.0/Jeonju_gakL.woff') format('woff');font-weight:300;font-display:swap}
-@font-face{font-family:'JeonjuWanpanbon';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2102-01@1.0/Jeonju_gakR.woff') format('woff');font-weight:normal;font-display:swap}
-@font-face{font-family:'JeonjuWanpanbon';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2102-01@1.0/Jeonju_gakB.woff') format('woff');font-weight:700;font-display:swap}
-@font-face{font-family:'JeongnimsaJi';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_231029@1.1/Jeongnimsaji-R.woff2') format('woff2');font-weight:400;font-display:swap}
-@font-face{font-family:'JeongnimsaJi';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_231029@1.1/Jeongnimsaji-B.woff2') format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'ChusaLove';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2205@1.0/ChusaLove.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'MaruBuri';src:url('https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-ExtraLight.woff2');font-weight:200;font-display:swap}
+@font-face{font-family:'MaruBuri';src:url('https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Light.woff2');font-weight:300;font-display:swap}
+@font-face{font-family:'MaruBuri';src:url('https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Regular.woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'MaruBuri';src:url('https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-SemiBold.woff2');font-weight:600;font-display:swap}
+@font-face{font-family:'MaruBuri';src:url('https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Bold.woff2');font-weight:700;font-display:swap}
 :root{
   --ink:#0f0b07;
   --parch:#ece0bf; --parch-line:#7a5a28; --parch-text:#38240e;
@@ -19,14 +20,14 @@
 button{appearance:none;-webkit-appearance:none;font:inherit}
 html,body{position:fixed;inset:0;width:100%;height:100%;overflow:hidden;
   overscroll-behavior:none;touch-action:none;background:var(--ink)}
-body{font-family:'JeongnimsaJi',serif;color:var(--paper);
+body{font-family:'MaruBuri',serif;color:var(--paper);
   background:radial-gradient(120% 90% at 50% 18%, #2c2013 0%, #17110a 52%, #0a0704 100%)}
 #stage{position:fixed;inset:0;touch-action:none}
 canvas{display:block;cursor:grab}
 #top{position:fixed;top:0;left:0;right:0;padding:calc(9px + env(safe-area-inset-top)) 12px 0;
   display:flex;align-items:center;gap:10px;pointer-events:none;z-index:5}
 #title{display:flex;flex-direction:column;text-shadow:0 2px 4px rgba(0,0,0,.8);pointer-events:none}
-#title h1{font-family:'JeongnimsaJi',serif;font-weight:800;font-size:15px;letter-spacing:.06em;color:var(--brass-bright);white-space:nowrap}
+#title h1{font-family:'MaruBuri',serif;font-weight:800;font-size:15px;letter-spacing:.06em;color:var(--brass-bright);white-space:nowrap}
 #title span{font-size:8.5px;letter-spacing:.2em;color:#cfb98c}
 #spacer{flex:1}
 #selBtn{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:5px;
@@ -57,7 +58,7 @@ canvas{display:block;cursor:grab}
   min-width:96px;display:flex;flex-direction:column;justify-content:center}
 #plaque .row{display:flex;justify-content:space-between;align-items:baseline}
 #plaque .label{font-size:9.5px;letter-spacing:.14em;color:#e2cd9c;font-weight:700}
-#plaque .pct{font-family:'JeongnimsaJi',serif;font-weight:800;font-size:16px;color:var(--brass-bright)}
+#plaque .pct{font-family:'MaruBuri',serif;font-weight:800;font-size:16px;color:var(--brass-bright)}
 #bar{margin-top:4px;height:6px;border-radius:3px;background:rgba(0,0,0,.6);overflow:hidden;border:1px solid rgba(222,182,98,.35)}
 #fill{height:100%;width:0%;background:linear-gradient(90deg,#9a7530,#f2d492);transition:width .35s}
 #toolPop{position:fixed;left:10px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:6;
@@ -102,7 +103,7 @@ canvas{display:block;cursor:grab}
 #doneCard .card{background:linear-gradient(180deg,#f4e6c0,#cfa95e);color:#241704;border:2px solid #fff3d4;
   border-radius:5px;padding:22px 36px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.65);
   animation:pop .55s cubic-bezier(.2,1.4,.4,1)}
-#doneCard h2{font-family:'JeonjuWanpanbon',serif;font-weight:800;font-size:22px;letter-spacing:.1em}
+#doneCard h2{font-family:'MaruBuri',serif;font-weight:800;font-size:22px;letter-spacing:.1em}
 #doneCard p{margin-top:6px;font-size:13px}
 @keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
 #credit{position:fixed;left:10px;bottom:calc(74px + env(safe-area-inset-bottom));z-index:4;
@@ -115,7 +116,7 @@ canvas{display:block;cursor:grab}
   background:radial-gradient(120% 92% at 50% 40%, rgba(24,17,9,.5) 0%, rgba(12,8,4,.85) 58%, rgba(5,3,1,.96) 100%)}
 #intro.hide{opacity:0;pointer-events:none}
 #intro .eyebrow{font-size:10.5px;letter-spacing:.34em;color:#c9a45c;margin-bottom:16px}
-#intro h1{font-family:'JeonjuWanpanbon',serif;font-weight:800;font-size:33px;letter-spacing:.05em;
+#intro h1{font-family:'ChusaLove','MaruBuri',serif;font-weight:400;font-size:40px;letter-spacing:.04em;
   color:var(--brass-bright);text-shadow:0 3px 14px rgba(0,0,0,.85)}
 #intro .sub{font-size:12px;letter-spacing:.26em;color:#cfb98c;margin-top:8px}
 #intro .relic{margin-top:24px;font-size:14px;color:#efdcac;font-weight:700;
@@ -124,7 +125,7 @@ canvas{display:block;cursor:grab}
 #intro .start{margin-top:32px;padding:14px 44px;border-radius:8px;border:2px solid #fff3d4;
   background:linear-gradient(180deg,var(--gold-a),var(--gold-b));color:#241704;font-size:16px;font-weight:800;
   letter-spacing:.08em;cursor:pointer;box-shadow:0 10px 28px rgba(0,0,0,.55);transition:transform .12s,opacity .3s;
-  font-family:'JeongnimsaJi',serif}
+  font-family:'MaruBuri',serif}
 #intro .start:active{transform:scale(.96)}
 #intro .start[disabled]{opacity:.5;cursor:default;filter:grayscale(.5)}
 #intro .cred{position:absolute;left:16px;right:16px;bottom:calc(12px + env(safe-area-inset-bottom));
@@ -139,7 +140,7 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
   background:radial-gradient(120% 92% at 50% 38%, rgba(24,17,9,.66) 0%, rgba(12,8,4,.9) 58%, rgba(5,3,1,.97) 100%)}
 .screen.show{opacity:1;pointer-events:auto}
 .scr-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(16px + env(safe-area-inset-top)) 16px 10px}
-.scr-title{font-family:'JeonjuWanpanbon',serif;font-weight:800;font-size:20px;color:var(--brass-bright);letter-spacing:.14em}
+.scr-title{font-family:'MaruBuri',serif;font-weight:800;font-size:20px;color:var(--brass-bright);letter-spacing:.14em}
 .scr-title span{display:block;font-size:9px;letter-spacing:.3em;color:#9a8256;font-weight:400;margin-top:2px}
 .scr-btn{padding:9px 14px;border-radius:6px;border:2px solid var(--parch-line);background:var(--parch);
   color:var(--parch-text);font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.5)}
@@ -173,14 +174,14 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
   border:2px solid #fff3d4;border-radius:14px;padding:26px 26px 22px;text-align:center;
   box-shadow:0 20px 60px rgba(0,0,0,.6);animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
 .finish-card .fin-em{font-size:22px;color:#9a7530}
-.finish-card h2{font-family:'JeonjuWanpanbon',serif;font-weight:800;font-size:22px;letter-spacing:.14em;margin-top:2px}
+.finish-card h2{font-family:'MaruBuri',serif;font-weight:800;font-size:22px;letter-spacing:.14em;margin-top:2px}
 .finish-card .fin-name{margin-top:14px;font-size:16px;font-weight:800;color:#3a2508}
 .finish-card .fin-meta{margin-top:6px;font-size:11.5px;color:#6b5330;font-weight:700;letter-spacing:.03em}
 .finish-card .fin-blurb{margin-top:12px;font-size:12px;line-height:1.65;color:#4d3a1c;text-align:left}
 .finish-card .fin-src{margin-top:12px;font-size:10px;color:#6b5330}
 .finish-card .fin-btns{display:flex;gap:10px;margin-top:20px}
 .finish-card .fin-btns button{flex:1;padding:12px 0;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;
-  border:2px solid #b98f38;background:#eadcb6;color:#3a2508;font-family:'JeongnimsaJi',serif}
+  border:2px solid #b98f38;background:#eadcb6;color:#3a2508;font-family:'MaruBuri',serif}
 .finish-card .fin-btns button.primary{background:linear-gradient(180deg,var(--gold-a),var(--gold-b));border-color:#fff3d4}
 #backHub{pointer-events:auto;width:38px;height:38px;border-radius:50%;border:2px solid var(--parch-line);
   background:var(--parch);color:var(--parch-text);font-size:24px;font-weight:800;line-height:1;cursor:pointer;
@@ -269,7 +270,7 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
   <div class="eyebrow">ATELIER DE RESTAURATION</div>
   <h1>골동품 복원 공방</h1>
   <div class="sub">천년 신라 · 유물 보존처리실</div>
-  <div class="premise">경주에 잠든 천년 신라의 유물,<br>세월의 때를 벗겨 본래의 빛을 되찾아 주세요.</div>
+  <div class="premise">경주에 잠든 천년 신라의 유물,<br>켜켜이 앉은 먼지를 걷어내 본래의 빛을 되찾아 주세요.</div>
   <button class="start" id="startBtn" disabled>준비 중&hellip;</button>
   <div class="cred">본 콘텐츠는 국가유산청에서 개발한 「천년 신라 왕경」 3D 저작물을 이용하였으며,<br>해당 저작물은 <a href="https://digital.khs.go.kr" target="_blank" rel="noopener">국가유산 디지털서비스</a>에서 무료로 내려받을 수 있습니다. · 공공누리 제1유형(출처표시)</div>
 </div>
@@ -491,9 +492,10 @@ function loadCavityImg(url, cb){
   img.src=url;
 }
 
-function buildCleanTarget(mesh,group,cavityData,maskData,name){
+function buildCleanTarget(mesh,group,cavityData,maskData,name,wrap){
   const grimeCanvas=makeDirtCanvas(DIRT_S);                 // 색(정적)
   const grimeTex=new THREE.CanvasTexture(grimeCanvas); grimeTex.flipY=false; grimeTex.anisotropy=4;
+  if(wrap){ grimeTex.wrapS=grimeTex.wrapT=THREE.RepeatWrapping; }
   const N=AMT_S;
   const dirt=new Float32Array(N*N);                          // 오염량 0..1
   const amt=new Uint8Array(N*N*4);                           // DataTexture용
@@ -505,11 +507,14 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name){
   }
   const amtTex=new THREE.DataTexture(amt,N,N,THREE.RGBAFormat);
   amtTex.needsUpdate=true; amtTex.flipY=false; amtTex.minFilter=THREE.LinearFilter; amtTex.magFilter=THREE.LinearFilter;
+  if(wrap){ amtTex.wrapS=amtTex.wrapT=THREE.RepeatWrapping; }
+  let maskUsable=false;                                       // 마스크가 비정상(빈/과소)이면 무시
+  if(maskData){ let c=0; for(let i=0;i<maskData.length;i++) if(maskData[i]) c++; maskUsable=c>200; }
   function seed(){                                            // 초기(더러운) 상태로 리셋 — 재복원용
     let s=0,n=0;
     for(let i=0;i<N*N;i++){
       let d;
-      if(maskData&&!maskData[i]) d=0;                         // 배경 텍셀 제거
+      if(maskUsable&&!maskData[i]) d=0;                       // 배경 텍셀 제거
       else { d=Math.min(1, Math.max(0.72,baseA[i]) + (cavityData?cavityData[i]:0)*0.14); s+=d; n++; }
       dirt[i]=d; const b=i*4,vv=(d*255)|0; amt[b]=amt[b+1]=amt[b+2]=amt[b+3]=vv;
     }
@@ -520,6 +525,7 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name){
     name:name,
     dirtyStat:false, done:false, pct:0, remain:1, initRemain:1, _amtDirty:false,
     brush(u,v,rPx,tool){
+      if(wrap){ u=((u%1)+1)%1; v=((v%1)+1)%1; }             // 타일 UV → 단일 타일에 기록
       const cx=u*N, cy=v*N, R=Math.max(1.2,rPx*(N/DIRT_S)), R2=R*R;
       const x0=Math.max(0,Math.floor(cx-R)),x1=Math.min(N-1,Math.ceil(cx+R));
       const y0=Math.max(0,Math.floor(cy-R)),y1=Math.min(N-1,Math.ceil(cy+R));
@@ -542,8 +548,8 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name){
       if(touched){ this._amtDirty=true; this.dirtyStat=true; }
     },
     sample(){
-      if(maskData){ let s=0,n=0; for(let i=0;i<dirt.length;i++){ if(maskData[i]){ s+=dirt[i]; n++; } } return n?s/n:0; }
-      let s=0; for(let i=0;i<dirt.length;i++)s+=dirt[i]; return s/dirt.length;
+      if(maskUsable){ let s=0,n=0; for(let i=0;i<dirt.length;i++){ if(maskData[i]){ s+=dirt[i]; n++; } } return s/n; }
+      let s=0; for(let i=0;i<dirt.length;i++)s+=dirt[i]; return s/dirt.length;  // 폴백: 전체 텍셀
     },
     applyCavityInit(){ seed(); },
     reset(){ seed(); this.done=false; this.pct=0; this.dirtyStat=true; },
@@ -554,9 +560,10 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name){
 
 function applyMaterial(mesh,target,assets){
   const tl=new THREE.TextureLoader();
-  const Tx=(u,srgb)=>{const tt=tl.load(u);tt.flipY=false;if(srgb)tt.encoding=THREE.sRGBEncoding;tt.anisotropy=8;return tt;};
+  const Tx=(u,srgb)=>{const tt=tl.load(u);tt.flipY=false;if(srgb)tt.encoding=THREE.sRGBEncoding;tt.anisotropy=8;if(assets.wrap)tt.wrapS=tt.wrapT=THREE.RepeatWrapping;return tt;};
   const C=Tx(assets.c,true), M=Tx(assets.m,false), N=Tx(assets.n,false);
-  const mat=new THREE.MeshStandardMaterial({map:C,normalMap:N,metalnessMap:M,roughnessMap:M,metalness:1,roughness:1,envMapIntensity:1.1,side:THREE.DoubleSide});
+  const R=assets.r?Tx(assets.r,false):M;
+  const mat=new THREE.MeshStandardMaterial({map:C,normalMap:N,metalnessMap:M,roughnessMap:R,metalness:1,roughness:1,envMapIntensity:1.1,side:THREE.DoubleSide});
   mat.onBeforeCompile=(sh)=>{
     sh.uniforms.uGrime={value:target.grimeTex};
     sh.uniforms.uAmt={value:target.amtTex};
@@ -599,7 +606,7 @@ function loadArtifact(id, cb){
       group.visible=false;
       group.traverse(o=>{ if(o.isMesh){o.castShadow=true;o.receiveShadow=true;} });
       scene.add(group);
-      const t=buildCleanTarget(mesh,group,cav,mask,a.name);
+      const t=buildCleanTarget(mesh,group,cav,mask,a.name,a.assets.wrap);
       applyMaterial(mesh,t,a.assets);
       targets[id]=t; cb(t);
     }, undefined, (err)=>{ console.error('glb load failed',id,err); cb(null); });
@@ -686,6 +693,14 @@ const ARTIFACTS=[
    blurb:'향을 사르는 향로 뚜껑을 장식한 사자상. 무른 곱돌(활석)을 깎아 갈기와 근육을 생동감 있게 새긴 신라 석공예의 솜씨가 담겨 있습니다.',
    assets:{glb:'art4.glb', c:'tex4/art4_C.png', m:'tex4/art4_M.png', n:'tex4/art4_N.png', ao:'tex4/art4_ao.png'},
    fit:{h:2.5,y:0.02,rx:0}},
+  {id:'gold', playable:true, name:'금제 꾸미개', era:'신라', material:'금·보석', desig:'유물', source:SRC,
+   blurb:'금알갱이를 촘촘히 붙이는 누금세공과 붉은 보석으로 화려하게 꾸민 신라의 금제 장신구. 정교한 세공이 황금의 나라 신라의 공예 수준을 보여줍니다.',
+   assets:{glb:'art5.glb', c:'tex5/T_24CL0016_C.png', m:'tex5/T_24CL0016_R.png', n:'tex5/T_24CL0016_N.png', ao:'tex5/art5_ao.png'},
+   fit:{h:2.2,y:0.04,rx:0}},
+  {id:'jade', playable:true, name:'경옥제 향로', era:'신라', material:'경옥(硬玉)', desig:'유물', source:SRC,
+   blurb:'단단한 옥돌을 깎아 만든 향로. 둥근 몸통과 세 다리, 귀 손잡이, 보주형 꼭지를 갖춘 형태에 옥을 다루는 신라 장인의 솜씨가 담겼습니다.',
+   assets:{glb:'art6.glb', c:'tex6/jade_C.png', m:'tex6/jade_M.png', r:'tex6/jade_R.png', n:'tex6/jade_N.png', ao:'tex6/art6_ao.png'},
+   fit:{h:2.35,y:0.04,rx:0}},
 ];
 const restored={};
 const unlocked={bapga:true};
