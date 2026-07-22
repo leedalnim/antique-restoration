@@ -528,20 +528,24 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name,wrap,posMap){
   const amtTex=new THREE.DataTexture(amt,N,N,THREE.RGBAFormat);
   amtTex.needsUpdate=true; amtTex.flipY=false; amtTex.minFilter=THREE.LinearFilter; amtTex.magFilter=THREE.LinearFilter;
   if(wrap){ amtTex.wrapS=amtTex.wrapT=THREE.RepeatWrapping; }
-  // 실제 메시(레이캐스트로 닿는) 텍셀만 오염 대상으로 삼는다.
-  // AO 마스크는 UV 패딩(삼각형 없는 여백)까지 포함해 '영원히 못 닦는 때'를 만들었음.
-  if(posMap) maskData=posMap.val;
-  let maskUsable=false;                                       // 마스크가 비정상(빈/과소)이면 무시
+  let maskUsable=false;                                       // 외형용 마스크(AO): 배경 텍셀 정리
   if(maskData){ let c=0; for(let i=0;i<maskData.length;i++) if(maskData[i]) c++; maskUsable=c>200; }
+  // 진행률 카운트 마스크: 실제 레이캐스트로 '닿는' 텍셀(위치맵)만 셈 → 못 닦는 여백이 100% 도달을 막지 않음
+  const cntMask = posMap ? posMap.val : maskData;
+  let cntUsable=false;
+  if(cntMask){ let c=0; for(let i=0;i<cntMask.length;i++) if(cntMask[i]) c++; cntUsable=c>200; }
+  function _cntAvg(){                                          // 남은 오염(닿는 텍셀 평균)
+    if(cntUsable){ let s=0,n=0; for(let i=0;i<dirt.length;i++) if(cntMask[i]){ s+=dirt[i]; n++; } return n?s/n:0; }
+    let s=0; for(let i=0;i<dirt.length;i++)s+=dirt[i]; return s/dirt.length;
+  }
   function seed(){                                            // 초기(더러운) 상태로 리셋 — 재복원용
-    let s=0,n=0;
     for(let i=0;i<N*N;i++){
       let d;
-      if(maskUsable&&!maskData[i]) d=0;                       // 배경 텍셀 제거
-      else { d=Math.min(1, Math.max(0.72,baseA[i]) + (cavityData?cavityData[i]:0)*0.14); s+=d; n++; }
+      if(maskUsable&&!maskData[i]) d=0;                       // 배경(AO 밖) 텍셀은 깨끗
+      else d=Math.min(1, Math.max(0.72,baseA[i]) + (cavityData?cavityData[i]:0)*0.14);
       dirt[i]=d; const b=i*4,vv=(d*255)|0; amt[b]=amt[b+1]=amt[b+2]=amt[b+3]=vv;
     }
-    t.initRemain=n?s/n:1; t.remain=t.initRemain; t._amtDirty=true;
+    t.initRemain=_cntAvg(); t.remain=t.initRemain; t._amtDirty=true;
   }
   const t={
     mesh, group, grimeTex, amtTex, S:DIRT_S, posMap,
@@ -552,13 +556,10 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name,wrap,posMap){
       const cx=u*N, cy=v*N, R=Math.max(1.2,rPx*(N/DIRT_S)), R2=R*R;
       const x0=Math.max(0,Math.floor(cx-R)),x1=Math.min(N-1,Math.ceil(cx+R));
       const y0=Math.max(0,Math.floor(cy-R)),y1=Math.min(N-1,Math.ceil(cy+R));
-      const gate=posMap&&r3d>0, r3d2=gate?r3d*r3d:0;         // 3D 거리 게이팅(파트 넘어감 방지)
       let touched=false;
       for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
         const dx=x-cx,dy=y-cy,dd=dx*dx+dy*dy; if(dd>R2)continue;
         const i=y*N+x, f=1-Math.sqrt(dd)/R, cav=cavityData?cavityData[i]:0, d0=dirt[i];
-        if(gate&&posMap.val[i]){ const qx=posMap.px[i]-hx,qy=posMap.py[i]-hy,qz=posMap.pz[i]-hz;
-          if(qx*qx+qy*qy+qz*qz>r3d2) continue; }             // 실제 3D 위치가 브러시 밖이면 건너뜀
         let nd=d0;
         if(tool==='swab'){ nd=d0 - f*1.0; }                        // 면봉: 정밀·구석홈까지 완전
         else if(tool==='brush'){                                    // 세척솔: 넓게 빠르나 홈·요철엔 때 남음
@@ -573,10 +574,7 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name,wrap,posMap){
       }
       if(touched){ this._amtDirty=true; this.dirtyStat=true; }
     },
-    sample(){
-      if(maskUsable){ let s=0,n=0; for(let i=0;i<dirt.length;i++){ if(maskData[i]){ s+=dirt[i]; n++; } } return s/n; }
-      let s=0; for(let i=0;i<dirt.length;i++)s+=dirt[i]; return s/dirt.length;  // 폴백: 전체 텍셀
-    },
+    sample(){ return _cntAvg(); },
     applyCavityInit(){ seed(); },
     reset(){ seed(); this.done=false; this.pct=0; this.dirtyStat=true; },
     serialize(){ const out=new Uint8Array(dirt.length); for(let i=0;i<dirt.length;i++) out[i]=(dirt[i]*255)|0; return out; },
