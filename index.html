@@ -356,64 +356,112 @@ function makeDirtCanvas(S){
 ========================================================= */
 let active=null;         /* CleanTarget */
 let dirtUniforms=null;   /* 셰이더 uniform 참조(히트맵용) */
-const DIRT_S=1024;
+const DIRT_S=1024;   // 그라임 색 텍스처 해상도
+const AMT_S=512;     // 오염량 그리드 해상도
+
+/* 크레바스(AO) 맵 로드 → cavityData[AMT_S^2], 1=깊은 홈 */
+let cavityData=null, maskData=null;
+(function loadCavity(){
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement('canvas'); c.width=c.height=AMT_S;
+    const x=c.getContext('2d'); x.drawImage(img,0,0,AMT_S,AMT_S);
+    const d=x.getImageData(0,0,AMT_S,AMT_S).data;
+    const arr=new Float32Array(AMT_S*AMT_S);
+    const mask=new Uint8Array(AMT_S*AMT_S);
+    for(let i=0;i<arr.length;i++){ const ao=d[i*4]; arr[i]=1-ao/255; mask[i]=ao>3?1:0; } // 어두운=홈, 0=배경
+    cavityData=arr; maskData=mask;
+    if(active&&active.applyCavityInit) active.applyCavityInit();
+  };
+  img.src='tex_in/ao.png';
+})();
 
 function buildCleanTarget(mesh,group){
-  const dirtCanvas=makeDirtCanvas(DIRT_S);
-  const dctx=dirtCanvas.getContext('2d');
-  const dirtTex=new THREE.CanvasTexture(dirtCanvas); dirtTex.flipY=false;
-  const small=document.createElement('canvas'); small.width=small.height=96;
-  const sctx=small.getContext('2d');
-  function sample(){
-    sctx.clearRect(0,0,96,96); sctx.drawImage(dirtCanvas,0,0,96,96);
-    const d=sctx.getImageData(0,0,96,96).data; let sum=0;
-    for(let i=3;i<d.length;i+=4) sum+=d[i];
-    return sum/(96*96*255);
+  const grimeCanvas=makeDirtCanvas(DIRT_S);                 // 색(정적)
+  const grimeTex=new THREE.CanvasTexture(grimeCanvas); grimeTex.flipY=false; grimeTex.anisotropy=4;
+  const N=AMT_S;
+  const dirt=new Float32Array(N*N);                          // 오염량 0..1
+  const amt=new Uint8Array(N*N*4);                           // DataTexture용
+  { // 초기 오염량 = 그라임 알파 다운샘플
+    const sc=document.createElement('canvas'); sc.width=sc.height=N;
+    const sx=sc.getContext('2d'); sx.drawImage(grimeCanvas,0,0,N,N);
+    const gd=sx.getImageData(0,0,N,N).data;
+    for(let i=0;i<N*N;i++){ const v=Math.max(0.72,gd[i*4+3]/255); dirt[i]=v; const b=i*4,vv=(v*255)|0; amt[b]=amt[b+1]=amt[b+2]=amt[b+3]=vv; }
   }
+  const amtTex=new THREE.DataTexture(amt,N,N,THREE.RGBAFormat);
+  amtTex.needsUpdate=true; amtTex.flipY=false; amtTex.minFilter=THREE.LinearFilter; amtTex.magFilter=THREE.LinearFilter;
   const t={
-    mesh, group, dirtCanvas, dctx, dirtTex, S:DIRT_S,
+    mesh, group, grimeTex, amtTex, S:DIRT_S,
     name:'금동미륵보살반가사유상',
-    dirtyStat:false, done:false, pct:0, remain:1, initRemain:1,
-    brush(u,v,rPx){
-      const x=u*DIRT_S, y=v*DIRT_S;
-      dctx.globalCompositeOperation='destination-out';
-      const g=dctx.createRadialGradient(x,y,0,x,y,rPx);
-      g.addColorStop(0,'rgba(0,0,0,1)'); g.addColorStop(0.55,'rgba(0,0,0,0.9)'); g.addColorStop(1,'rgba(0,0,0,0)');
-      dctx.fillStyle=g; dctx.beginPath(); dctx.arc(x,y,rPx,0,7); dctx.fill();
-      dctx.globalCompositeOperation='source-over';
-      this.dirtyStat=true; dirtTex.needsUpdate=true;
+    dirtyStat:false, done:false, pct:0, remain:1, initRemain:1, _amtDirty:false,
+    brush(u,v,rPx,tool){
+      const cx=u*N, cy=v*N, R=Math.max(1.2,rPx*(N/DIRT_S)), R2=R*R;
+      const x0=Math.max(0,Math.floor(cx-R)),x1=Math.min(N-1,Math.ceil(cx+R));
+      const y0=Math.max(0,Math.floor(cy-R)),y1=Math.min(N-1,Math.ceil(cy+R));
+      let touched=false;
+      for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+        const dx=x-cx,dy=y-cy,dd=dx*dx+dy*dy; if(dd>R2)continue;
+        const i=y*N+x, f=1-Math.sqrt(dd)/R, cav=cavityData?cavityData[i]:0, d0=dirt[i];
+        let nd=d0;
+        if(tool==='swab'){ nd=d0 - f*0.95; }                       // 구석까지 완전 세척
+        else if(tool==='brush'){                                    // 넓게, 홈은 못 감
+          nd=d0 - f*0.75*(1-cav*0.95);
+          const fl=Math.min(d0, cav*0.9); if(nd<fl)nd=fl;
+        }else{                                                      // blow: 겉먼지만, haze 남음
+          nd=d0 - f*0.5*(1-cav);
+          const fl=Math.min(d0, 0.33+cav*0.55); if(nd<fl)nd=fl;
+        }
+        if(nd<0)nd=0;
+        if(nd!==d0){ dirt[i]=nd; const b=i*4,vv=(nd*255)|0; amt[b]=amt[b+1]=amt[b+2]=amt[b+3]=vv; touched=true; }
+      }
+      if(touched){ this._amtDirty=true; this.dirtyStat=true; }
     },
-    sample,
+    sample(){
+      if(maskData){ let s=0,n=0; for(let i=0;i<dirt.length;i++){ if(maskData[i]){ s+=dirt[i]; n++; } } return n?s/n:0; }
+      let s=0; for(let i=0;i<dirt.length;i++)s+=dirt[i]; return s/dirt.length;
+    },
+    applyCavityInit(){                                             // 홈엔 때 가중, 배경은 제거
+      let s=0,n=0;
+      for(let i=0;i<N*N;i++){
+        let d;
+        if(maskData&&!maskData[i]){ d=0; }                          // 배경 텍셀: 오염 제거(가장자리 번짐 방지)
+        else { d=Math.min(1,dirt[i]+cavityData[i]*0.14); s+=d; n++; }
+        dirt[i]=d; const b=i*4,vv=(d*255)|0; amt[b]=amt[b+1]=amt[b+2]=amt[b+3]=vv;
+      }
+      this.initRemain=n?s/n:this.initRemain; this._amtDirty=true;
+    },
   };
-  t.initRemain=sample();
+  t.initRemain=t.sample();
   return t;
 }
 
-function applyMaterial(mesh,dirtTex){
+function applyMaterial(mesh,target){
   const tl=new THREE.TextureLoader();
   const Tx=(u,srgb)=>{const tt=tl.load(u);tt.flipY=false;if(srgb)tt.encoding=THREE.sRGBEncoding;tt.anisotropy=8;return tt;};
   const C=Tx('tex_in/T_24RE0001_C.png',true), M=Tx('tex_in/T_24RE0001_M.png',false), N=Tx('tex_in/T_24RE0001_N.png',false);
   const mat=new THREE.MeshStandardMaterial({map:C,normalMap:N,metalnessMap:M,roughnessMap:M,metalness:1,roughness:1,envMapIntensity:1.1});
   mat.onBeforeCompile=(sh)=>{
-    sh.uniforms.uDirt={value:dirtTex};
+    sh.uniforms.uGrime={value:target.grimeTex};
+    sh.uniforms.uAmt={value:target.amtTex};
     sh.uniforms.uHeat={value:0};
     dirtUniforms=sh.uniforms;
-    sh.fragmentShader='uniform sampler2D uDirt;\nuniform float uHeat;\n'+sh.fragmentShader
+    sh.fragmentShader='uniform sampler2D uGrime;\nuniform sampler2D uAmt;\nuniform float uHeat;\n'+sh.fragmentShader
       .replace('#include <map_fragment>',
         `#include <map_fragment>
-         vec4 dcolG = texture2D(uDirt, vUv);
-         diffuseColor.rgb = mix(diffuseColor.rgb, dcolG.rgb, dcolG.a);`)
+         float amtG = texture2D(uAmt, vUv).r;
+         vec3 grimeG = texture2D(uGrime, vUv).rgb;
+         diffuseColor.rgb = mix(diffuseColor.rgb, grimeG, amtG);`)
       .replace('#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
-         roughnessFactor = mix(roughnessFactor, 0.97, dcolG.a);`)
+         roughnessFactor = mix(roughnessFactor, 0.97, amtG);`)
       .replace('#include <metalnessmap_fragment>',
         `#include <metalnessmap_fragment>
-         metalnessFactor = mix(metalnessFactor, 0.0, dcolG.a);`)
+         metalnessFactor = mix(metalnessFactor, 0.0, amtG);`)
       .replace('#include <dithering_fragment>',
         `#include <dithering_fragment>
-         gl_FragColor.rgb += uHeat * dcolG.a * vec3(0.55,0.06,0.03);`);
+         gl_FragColor.rgb += uHeat * amtG * vec3(0.55,0.06,0.03);`);
   };
-  mat.customProgramCacheKey=()=>'buddha-dirt';
+  mat.customProgramCacheKey=()=>'buddha-dirt2';
   mesh.material=mat;
   return mat;
 }
@@ -433,7 +481,8 @@ loader.load('khs_buddha.glb',(gltf)=>{
   scene.add(group);
 
   active=buildCleanTarget(mesh,group);
-  applyMaterial(mesh,active.dirtTex);
+  applyMaterial(mesh,active);
+  if(cavityData) active.applyCavityInit();
 
   updateProgressUI();
   setHint();
@@ -691,12 +740,12 @@ function cleanAt(e){
   if(lastHit){
     let dx=u-lastHit.u,dy=v-lastHit.v;
     const dist=Math.hypot(dx,dy)*active.S; moved=dist;
-    if(dist>r*7){ active.brush(u,v,r); }
+    if(dist>r*7){ active.brush(u,v,r,tool); }
     else{
       const steps=Math.min(14,Math.max(1,Math.ceil(dist/(r*0.45))));
-      for(let i=1;i<=steps;i++) active.brush(lastHit.u+dx*i/steps,lastHit.v+dy*i/steps,r);
+      for(let i=1;i<=steps;i++) active.brush(lastHit.u+dx*i/steps,lastHit.v+dy*i/steps,r,tool);
     }
-  }else active.brush(u,v,r);
+  }else active.brush(u,v,r,tool);
   lastHit={u,v};
   Snd.keepClean(tool,Math.min(1,moved/(r*2)));
   if(lastCleanHit){
@@ -778,6 +827,7 @@ function animate(){
   requestAnimationFrame(animate);
   const dt=Math.min(0.05,clock.getDelta());
   if(dirtUniforms) dirtUniforms.uHeat.value = heat?(0.35+0.35*Math.sin(performance.now()*0.005)):0;
+  if(active&&active._amtDirty){active.amtTex.needsUpdate=true;active._amtDirty=false;}
   updateBursts(dt); updateJet(dt);
   camR+=(camRTarget-camR)*Math.min(1,dt*8);
   placeCamera();
