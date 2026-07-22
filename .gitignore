@@ -2,3 +2,7 @@ node_modules/
 shot-*.png
 *.log
 __pycache__/
+*.stl
+prev_*.png
+ref_*.png
+*.glb
