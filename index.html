@@ -581,7 +581,10 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name,wrap,posMap){
     reset(){ seed(); this.done=false; this.pct=0; this.dirtyStat=true; },
     serialize(){ const out=new Uint8Array(dirt.length); for(let i=0;i<dirt.length;i++) out[i]=(dirt[i]*255)|0; return out; },
     restore(arr){ if(!arr||arr.length!==dirt.length) return false;      // 저장된 오염 상태 복원(이어하기)
-      for(let i=0;i<dirt.length;i++){ dirt[i]=arr[i]/255; const b=i*4; amt[b]=amt[b+1]=amt[b+2]=amt[b+3]=arr[i]; }
+      for(let i=0;i<dirt.length;i++){
+        const off=maskUsable&&maskData&&!maskData[i];                   // 메시 밖(여백) 유령 오염은 버림 — 옛 저장 자동 치유
+        const d=off?0:arr[i]/255; dirt[i]=d; const b=i*4,v=(d*255)|0; amt[b]=amt[b+1]=amt[b+2]=amt[b+3]=v;
+      }
       this._amtDirty=true; this.remain=this.sample(); return true; },
   };
   seed();
