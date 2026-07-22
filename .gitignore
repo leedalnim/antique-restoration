@@ -35,3 +35,9 @@ facefix.js
 mem_*
 verify5.js
 seam_*
+mob*.js
+mob_*.png
+heat_*.js
+heat_*.png
+dtap_*.png
+mobile_look.js
