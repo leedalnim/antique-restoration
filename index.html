@@ -719,10 +719,7 @@ function applyMaterial(mesh,target,assets){
         `#include <map_fragment>
          float amtG = texture2D(uAmt, vUv).r;
          vec3 grimeG = texture2D(uGrime, vUv).rgb;
-         diffuseColor.rgb = mix(diffuseColor.rgb, grimeG, amtG);
-         // 세척솔로 지운 뒤 남는 잔여물 → 흰끼 도는 가루처럼 보이게(면봉 쓸 곳 잘 보이게)
-         float residue = smoothstep(0.05,0.28,amtG) * (1.0 - smoothstep(0.55,0.85,amtG));
-         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86,0.84,0.78), residue*0.55);`)
+         diffuseColor.rgb = mix(diffuseColor.rgb, grimeG, amtG);`)
       .replace('#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
          roughnessFactor = mix(roughnessFactor, 0.97, amtG);`)
@@ -732,7 +729,7 @@ function applyMaterial(mesh,target,assets){
       .replace('#include <dithering_fragment>',
         `#include <dithering_fragment>
          float _hl = uHeat * smoothstep(0.02,0.18,amtG);
-         gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(1.0,0.10,0.72), _hl);   // 형광 핑크로 잔여 표시`);
+         gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(1.0,0.42,0.05), _hl);   // 주황빛으로 잔여 표시`);
   };
   const kk=++_matKey; mat.customProgramCacheKey=()=>'dirt'+kk;
   mesh.material=mat;
