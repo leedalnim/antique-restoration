@@ -134,6 +134,20 @@ canvas{display:block;cursor:grab}
 #doneCard h2{font-family:'MapoGeumbitnaru',serif;font-weight:800;font-size:22px;letter-spacing:.1em}
 #doneCard p{margin-top:6px;font-size:13px}
 @keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+/* 95% 도달 시 '100% 채우기' 물어보는 카드 */
+#finishAsk{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 72px);transform:translate(-50%,-8px);
+  z-index:8;width:min(340px,88vw);opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;
+  background:linear-gradient(180deg,rgba(38,27,12,.94),rgba(24,16,7,.94));backdrop-filter:blur(10px);
+  border:1px solid rgba(230,192,109,.5);border-radius:12px;padding:15px 16px 14px;text-align:center;
+  box-shadow:0 14px 40px rgba(0,0,0,.55)}
+#finishAsk.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#finishAsk .ttl{font-weight:800;font-size:15px;color:var(--brass-bright);letter-spacing:.02em}
+#finishAsk .msg{font-size:12.5px;line-height:1.6;color:#e4d6b4;margin:5px 0 12px}
+#finishAsk .btns{display:flex;gap:9px}
+#finishAsk button{flex:1;padding:11px 8px;border-radius:8px;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+#askKeep{background:rgba(255,255,255,.08);border:1px solid rgba(230,192,109,.35);color:#e8d6a6}
+#askFinish{background:linear-gradient(180deg,var(--gold-a),var(--gold-b));border:1px solid #fff3d4;color:#1d1204}
+#finishAsk button:active{transform:scale(.96)}
 #credit{position:fixed;left:10px;bottom:calc(74px + env(safe-area-inset-bottom));z-index:4;
   font-size:9.5px;letter-spacing:.03em;color:#9a8256;pointer-events:none;text-shadow:0 1px 2px #000;max-width:52%}
 #loading{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
@@ -196,7 +210,8 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
 .cxrow .info .nm{font-size:15.5px;font-weight:800;color:var(--brass-bright)}
 .cxrow .info .mt{font-size:12px;color:#d3bd90;margin-top:4px}
 .cxrow .info .bl{font-size:13px;color:#e4d6b4;line-height:1.7;margin-top:8px}
-.cxrow .info .sr{font-size:10.5px;color:#9a8256;margin-top:8px}
+.cx-src{margin:6px 2px 2px;padding-top:14px;border-top:1px solid rgba(154,130,86,.28);
+  font-size:10.5px;line-height:1.6;color:#9a8256;text-align:center}
 .cx-empty{margin:auto;color:#9a8256;font-size:13px;text-align:center;line-height:1.7}
 #finish{align-items:center;justify-content:center}
 .finish-card{width:min(88%,360px);background:linear-gradient(180deg,#f4e6c0,#d8b878);color:#241704;
@@ -271,6 +286,15 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
 </div>
 
 <div id="toast"></div>
+
+<div id="finishAsk">
+  <div class="ttl">거의 다 됐어요 ✨</div>
+  <div class="msg">지금 복원해도 충분해요. 끝까지 100% 채워 볼까요?</div>
+  <div class="btns">
+    <button id="askKeep">계속 닦기</button>
+    <button id="askFinish">100% 완성</button>
+  </div>
+</div>
 
 <div id="sidebtns">
   <button class="sbtn on" id="musicBtn" aria-label="배경음악"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg></button>
@@ -714,7 +738,7 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name,wrap,posMap){
     },
     sample(){ return _cntAvg(); },
     applyCavityInit(){ seed(); },
-    reset(){ seed(); this.done=false; this.pct=0; this.dirtyStat=true; },
+    reset(){ seed(); this.done=false; this._askArmAt=null; this.pct=0; this.dirtyStat=true; },
     finishClean(){ for(let i=0;i<dirt.length;i++){ dirt[i]=0; const b=i*4; amt[b]=amt[b+1]=amt[b+2]=amt[b+3]=0; } this._amtDirty=true; this.remain=0; this.pct=100; },  // 복원 완료 → 완전히 깨끗
     serialize(){ const out=new Uint8Array(dirt.length); for(let i=0;i<dirt.length;i++) out[i]=(dirt[i]*255)|0; return out; },
     restore(arr){ if(!arr||arr.length!==dirt.length) return false;      // 저장된 오염 상태 복원(이어하기)
@@ -944,6 +968,7 @@ function goto(scr){
   if(scr!=='game' && active && document.body.classList.contains('ingame')){ saveDirt(curArtifact,active); saveProgress(); }  // 게임에서 나갈 때 진행 저장
   ['intro','hub','codex','finish'].forEach(sn=>{ const el=$('#'+sn); if(el) el.classList.toggle('show', sn===scr); });
   const inGame=(scr==='game');
+  if(!inGame) hideFinishAsk();
   document.body.classList.toggle('ingame', inGame);
   introMode=!inGame;
   if(scr==='hub') buildHub();
@@ -975,9 +1000,12 @@ function buildCodex(){
   if(!done.length){ g.innerHTML='<div class="cx-empty">아직 복원한 유물이 없습니다.<br>수장고에서 유물을 복원해 보세요.</div>'; return; }
   for(const a of done){
     const r=document.createElement('div'); r.className='cxrow';
-    r.innerHTML='<div class="ic">'+LOTUS_SVG+'</div><div class="info"><div class="nm">'+a.name+'</div><div class="mt">'+a.desig+' · '+a.era+' · '+a.material+'</div><div class="bl">'+a.blurb+'</div><div class="sr">출처: '+a.source+'</div></div>';
+    r.innerHTML='<div class="ic">'+LOTUS_SVG+'</div><div class="info"><div class="nm">'+a.name+'</div><div class="mt">'+a.desig+' · '+a.era+' · '+a.material+'</div><div class="bl">'+a.blurb+'</div></div>';
     g.appendChild(r);
   }
+  const foot=document.createElement('div'); foot.className='cx-src';
+  foot.textContent='출처 · '+SRC;
+  g.appendChild(foot);
 }
 function startGame(id){
   Snd.resume();
@@ -993,6 +1021,7 @@ function startGame(id){
     camTheta=0.5; camPhi=1.12; camRTarget=3.5; camR=3.5; camTargetGoal.set(0,0.15,0); camTarget.set(0,0.15,0);
     mode='rotate'; $$('.mode').forEach(x=>x.classList.toggle('on',x.dataset.mode==='rotate'));
     $('#toolBtn').classList.remove('show'); closeToolPop();
+    hideFinishAsk();
     $('#selBtn .nm').textContent=a.name;
     $('#selBtn').classList.remove('complete');
     updateProgressUI();
@@ -1016,21 +1045,35 @@ function updateProgressUI(){
   if(!active)return;
   const pct=Math.max(0,Math.min(100,(1-active.remain/active.initRemain)*100));
   active.pct=pct;
-  $('#pct').textContent=pct.toFixed(0)+'%';
+  $('#pct').textContent=Math.floor(pct)+'%';
   $('#fill').style.width=pct+'%';
-  if(pct>=95&&!active.done&&document.body.classList.contains('ingame')){
-    active.done=true;
-    restored[curArtifact]=true;
-    unlockNext(curArtifact);
-    active.finishClean();                                       // 마지막 때까지 싹 → 100% 깨끗
-    $('#pct').textContent='100%'; $('#fill').style.width='100%';
-    saveDirt(curArtifact, active); saveProgress();              // 완료(깨끗) 상태 저장 → 재입장해도 깨끗
-    $('#selBtn').classList.add('complete');
-    Snd.win();
-    setTimeout(()=>showFinish(), 850);
+  if(!active.done && document.body.classList.contains('ingame')){
+    if(pct>=98) completeArtifact();                             // 98%↑ → 자동 100% 완성
+    else if(pct>=95) showFinishAsk();                           // 95%↑ → 100% 채울지 물어보기
+    else hideFinishAsk();
   }
   $('#replayBtn').classList.toggle('show', !!active.done);       // 완료 유물엔 '다시 복원' 노출
 }
+function completeArtifact(){
+  if(!active||active.done)return;
+  active.done=true;
+  restored[curArtifact]=true;
+  unlockNext(curArtifact);
+  active.finishClean();                                         // 마지막 때까지 싹 → 100% 깨끗
+  $('#pct').textContent='100%'; $('#fill').style.width='100%';
+  saveDirt(curArtifact, active); saveProgress();                // 완료(깨끗) 상태 저장 → 재입장해도 깨끗
+  $('#selBtn').classList.add('complete');
+  hideFinishAsk();
+  Snd.win();
+  setTimeout(()=>showFinish(), 850);
+}
+function showFinishAsk(){
+  if(active&&active._askArmAt!=null&&active.pct<active._askArmAt)return;  // '계속 닦기' 후 조금 더 닦으면 다시 등장
+  $('#finishAsk').classList.add('show');
+}
+function hideFinishAsk(){ $('#finishAsk').classList.remove('show'); }
+$('#askFinish').onclick=()=>{ Snd.tap(); completeArtifact(); };
+$('#askKeep').onclick=()=>{ if(active) active._askArmAt=Math.min(97.9, active.pct+1.2); hideFinishAsk(); toast('계속 닦아 보세요 · 98%면 자동 완성'); };
 $('#replayBtn').onclick=()=>{ const id=curArtifact; if(!active) return;   // 완료 유물 다시하기 → 더러운 상태로
   clearDirt(id); active.reset(); $('#selBtn').classList.remove('complete'); $('#replayBtn').classList.remove('show');
   camTheta=0.5;camPhi=1.12;camRTarget=3.5;camTargetGoal.set(0,0.15,0); updateProgressUI(); toast('처음부터 다시 복원합니다'); };
