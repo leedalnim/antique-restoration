@@ -1,6 +1,6 @@
 /* 네트워크 우선 서비스워커: 항상 최신을 받되(개발 중 stale 방지),
    오프라인일 때만 캐시된 셸로 폴백. PWA 설치 조건 충족용. */
-const CACHE = 'ar-shell-v1';
+const CACHE = 'ar-shell-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
