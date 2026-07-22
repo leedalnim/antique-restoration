@@ -1,0 +1,16 @@
+{
+  "name": "골동품 복원 공방",
+  "short_name": "복원 공방",
+  "description": "국가유산청 3D 스캔 신라 유물을 보존처리사가 되어 세척·복원하는 3D 게임",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0704",
+  "theme_color": "#1a1510",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

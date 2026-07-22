@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>골동품 복원 공방 · 천년 신라 유물 보존처리실</title>
+<!-- PWA(홈 화면 설치) -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1a1510">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="복원 공방">
+<script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 <style>
 @font-face{font-family:'ChusaLove';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2205@1.0/ChusaLove.woff2') format('woff2');font-weight:400;font-display:swap}
 @font-face{font-family:'MaruBuri';src:url('https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-ExtraLight.woff2');font-weight:200;font-display:swap}
@@ -83,11 +93,12 @@ canvas{display:block;cursor:grab}
 #hint.show{opacity:1}
 #hint b{color:var(--brass-bright);font-weight:700}
 #sidebtns{position:fixed;right:10px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;gap:8px}
-.sbtn{width:46px;height:46px;border-radius:50%;border:2px solid var(--parch-line);
-  background:var(--parch);color:var(--parch-text);font-size:22px;font-weight:700;line-height:1;
-  cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;
+.sbtn{width:46px;height:46px;border-radius:50%;border:1.5px solid rgba(222,182,98,.32);
+  background:rgba(22,16,8,.46);-webkit-backdrop-filter:blur(10px) saturate(1.1);backdrop-filter:blur(10px) saturate(1.1);
+  color:#f0dcae;font-size:22px;font-weight:700;line-height:1;
+  cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;
   transition:transform .1s, background .15s}
-.sbtn.on{background:linear-gradient(180deg,var(--gold-a),var(--gold-b));border-color:#fff3d4}
+.sbtn.on{background:linear-gradient(180deg,var(--gold-a),var(--gold-b));border-color:#fff3d4;color:#1d1204}
 .sbtn:active{transform:scale(.9)}
 #resetBtn{font-size:25px}
 .ic{width:19px;height:19px;flex:none;display:inline-block;vertical-align:-4px}
