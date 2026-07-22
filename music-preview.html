@@ -1,0 +1,117 @@
+<!DOCTYPE html><html lang="ko"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>배경음악 후보 미리듣기 · 골동품 복원 공방</title>
+<style>
+  :root{--gold:#e6c06d;--gold2:#b47f2b;--paper:#f0e4c8;}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:radial-gradient(120% 90% at 50% 22%,#2a1e0e,#120c05 60%,#080503);color:var(--paper);
+    font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;-webkit-tap-highlight-color:transparent}
+  .wrap{max-width:520px;margin:0 auto;padding:34px 20px 60px}
+  h1{font-size:22px;color:var(--gold);margin:0 0 4px;letter-spacing:.02em}
+  .sub{font-size:13px;color:#b39b6e;margin:0 0 26px;line-height:1.6}
+  .card{border:1px solid rgba(222,182,98,.3);border-radius:16px;padding:18px 18px 20px;margin:14px 0;
+    background:rgba(20,14,8,.55);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  .card h2{margin:0 0 4px;font-size:18px;color:var(--gold)}
+  .card p{margin:0 0 14px;font-size:12.5px;color:#c9b48a;line-height:1.6}
+  .btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:15px;border-radius:12px;cursor:pointer;
+    border:1.5px solid rgba(222,182,98,.5);background:linear-gradient(180deg,rgba(60,44,20,.7),rgba(32,22,10,.7));
+    color:var(--paper);font-size:15px;font-weight:700;transition:transform .1s, background .2s}
+  .btn:active{transform:scale(.97)}
+  .btn.playing{background:linear-gradient(180deg,var(--gold),var(--gold2));color:#1d1204;border-color:#fff3d4}
+  .ic{font-size:19px}
+  .note{margin-top:24px;font-size:12px;color:#9a8256;line-height:1.7;text-align:center}
+  .hd{font-size:34px;text-align:center;margin:0 0 6px}
+</style></head><body>
+<div class="wrap">
+  <div class="hd">🎵</div>
+  <h1>배경음악 후보 미리듣기</h1>
+  <p class="sub">전통 악기 음색을 흉내 낸 합성 후보 3종이에요. 각 버튼을 눌러 들어보고, 맘에 드는 번호를 알려주시면 게임에 넣을게요. (한 번에 하나만 재생)</p>
+
+  <div class="card">
+    <h2>① 가야금 · 뜯는 현</h2>
+    <p>줄을 뜯는 맑고 또렷한 소리. 산조·정악의 담백한 느낌.</p>
+    <button class="btn" data-k="gayageum"><span class="ic">▶</span><span class="lb">재생</span></button>
+  </div>
+
+  <div class="card">
+    <h2>② 대금 · 대나무 피리</h2>
+    <p>숨결이 실린 부드럽고 긴 관악 소리. 잔잔하고 명상적.</p>
+    <button class="btn" data-k="daegeum"><span class="ic">▶</span><span class="lb">재생</span></button>
+  </div>
+
+  <div class="card">
+    <h2>③ 편종·풍경 · 맑은 종</h2>
+    <p>은은하게 울리는 금속 종소리. 넓고 신비로운 공간감.</p>
+    <button class="btn" data-k="bell"><span class="ic">▶</span><span class="lb">재생</span></button>
+  </div>
+
+  <div class="note">지금 게임에 깔린 건 ①의 초기 버전이에요.<br>맘에 드는 후보(또는 "①인데 더 느리게" 같은 요청)를 알려주세요.</div>
+</div>
+<script>
+let ac=null, cur=null, curKey=null, timer=0, nodes=[];
+function ctx(){ if(!ac) ac=new (window.AudioContext||window.webkitAudioContext)(); if(ac.state==='suspended')ac.resume(); return ac; }
+function reverb(a,secs,decay){ const len=(a.sampleRate*secs)|0, ir=a.createBuffer(2,len,a.sampleRate);
+  for(let c=0;c<2;c++){const d=ir.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);}
+  const cv=a.createConvolver(); cv.buffer=ir; return cv; }
+const SCALE=[293.66,329.63,392.00,440.00,523.25,587.33,659.25,783.99]; // D E G A C D E G
+
+// ① 가야금 — Karplus-Strong 뜯는 현
+function ksPluck(a,dest,freq,dur,vol){
+  const N=Math.max(2,Math.round(a.sampleRate/freq));
+  const buf=a.createBuffer(1,(a.sampleRate*dur)|0,a.sampleRate), d=buf.getChannelData(0);
+  const y=new Float32Array(N); for(let i=0;i<N;i++)y[i]=Math.random()*2-1;
+  let idx=0, prev=0;
+  for(let i=0;i<d.length;i++){ const c=y[idx]; d[i]=c; const o=(c+prev)*0.5*0.9965; y[idx]=o; prev=c; idx=(idx+1)%N; }
+  const src=a.createBufferSource(); src.buffer=buf; const g=a.createGain(); g.gain.value=vol;
+  const f=a.createBiquadFilter(); f.type='lowpass'; f.frequency.value=3200;
+  src.connect(f); f.connect(g); g.connect(dest); src.start(); return src;
+}
+// ② 대금 — 숨결 실린 피리
+function flute(a,dest,freq,dur,vol){
+  const o=a.createOscillator(),o2=a.createOscillator(),g=a.createGain(),f=a.createBiquadFilter();
+  o.type='sine'; o2.type='triangle'; o.frequency.value=freq; o2.frequency.value=freq; o2.detune.value=3;
+  f.type='lowpass'; f.frequency.value=1600;
+  const vib=a.createOscillator(),vg=a.createGain(); vib.frequency.value=4.7; vg.gain.value=freq*0.008; vib.connect(vg); vg.connect(o.frequency); vg.connect(o2.frequency); vib.start();
+  // breath noise
+  const nb=a.createBuffer(1,a.sampleRate*dur,a.sampleRate),nd=nb.getChannelData(0); for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
+  const ns=a.createBufferSource(); ns.buffer=nb; const nf=a.createBiquadFilter(); nf.type='bandpass'; nf.frequency.value=freq*2; nf.Q.value=1.5; const ng=a.createGain(); ng.gain.value=0.06;
+  ns.connect(nf); nf.connect(ng); ng.connect(g);
+  o.connect(f); o2.connect(f); f.connect(g); g.connect(dest);
+  const t=a.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+0.28);
+  g.gain.setValueAtTime(vol,t+dur-0.5); g.gain.linearRampToValueAtTime(0.0001,t+dur);
+  o.start(t);o2.start(t);ns.start(t); o.stop(t+dur+0.05);o2.stop(t+dur+0.05);ns.stop(t+dur+0.05);
+}
+// ③ 편종/풍경 — 비화음 종소리
+function bell(a,dest,freq,dur,vol){
+  [[1,1],[2.01,0.5],[2.99,0.32],[4.18,0.22],[5.4,0.14]].forEach(([r,amp])=>{
+    const o=a.createOscillator(),g=a.createGain(); o.type='sine'; o.frequency.value=freq*r;
+    const t=a.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol*amp,t+0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g); g.connect(dest); o.start(t); o.stop(t+dur+0.05);
+  });
+}
+function start(key){
+  const a=ctx(); stop();
+  const master=a.createGain(); master.gain.value=0.9; const rev=reverb(a, key==='bell'?3.2:2.2, key==='bell'?2.4:2.8), rg=a.createGain();
+  rg.gain.value= key==='bell'?0.5:0.32; master.connect(a.destination); master.connect(rev); rev.connect(rg); rg.connect(a.destination);
+  cur={master}; curKey=key; let idx=3;
+  const conf={ gayageum:{gap:[900,2100],play:(f)=>ksPluck(a,master,f,2.2,0.5)},
+               daegeum:{gap:[2400,2400],play:(f)=>flute(a,master,f,3.2,0.16)},
+               bell:{gap:[2600,3200],play:(f)=>bell(a,master,f,3.6,0.16)} }[key];
+  (function step(){ if(!cur||curKey!==key)return;
+    idx=Math.max(0,Math.min(SCALE.length-1, idx+((Math.random()*3)|0)-1));
+    conf.play(SCALE[idx]);
+    if(key!=='daegeum' && Math.random()<0.35) conf.play(SCALE[Math.max(0,idx-2)]);
+    timer=setTimeout(step, conf.gap[0]+Math.random()*(conf.gap[1]-conf.gap[0]));
+  })();
+}
+function stop(){ clearTimeout(timer); if(cur){ try{cur.master.gain.setValueAtTime(0,ctx().currentTime);}catch(e){} } cur=null; curKey=null; }
+document.querySelectorAll('.btn').forEach(btn=>{
+  btn.onclick=()=>{ const k=btn.dataset.k; const wasPlaying=(curKey===k);
+    document.querySelectorAll('.btn').forEach(b=>{b.classList.remove('playing');b.querySelector('.ic').textContent='▶';b.querySelector('.lb').textContent='재생';});
+    stop();
+    if(!wasPlaying){ start(k); btn.classList.add('playing'); btn.querySelector('.ic').textContent='⏸'; btn.querySelector('.lb').textContent='정지'; }
+  };
+});
+</script>
+</body></html>
