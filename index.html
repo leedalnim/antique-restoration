@@ -406,6 +406,17 @@ function placeCamera(){
   camera.lookAt(camTarget);
 }
 placeCamera();
+const _panR=new THREE.Vector3(),_panU=new THREE.Vector3();
+function panBy(ddx,ddy){                          // 화면 평면에서 오브젝트(시점 중심) 이동
+  _panR.setFromMatrixColumn(camera.matrixWorld,0);
+  _panU.setFromMatrixColumn(camera.matrixWorld,1);
+  const s=camR*0.0021;
+  camTargetGoal.addScaledVector(_panR,-ddx*s).addScaledVector(_panU,ddy*s);
+  camTargetGoal.x=Math.max(-2.2,Math.min(2.2,camTargetGoal.x));   // 너무 멀리 못 나가게 제한
+  camTargetGoal.y=Math.max(-2.2,Math.min(2.6,camTargetGoal.y));
+  camTargetGoal.z=Math.max(-2.2,Math.min(2.2,camTargetGoal.z));
+  camTarget.copy(camTargetGoal);
+}
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 
 /* 조명 — 스튜디오 3점 + 스팟 */
@@ -692,11 +703,11 @@ const TOOLS={
 };
 const isTouch=('ontouchstart' in window)&&navigator.maxTouchPoints>0;
 const HINTS=isTouch?{
-  rotate:'드래그로 <b>회전</b> · 두 손가락 <b>확대</b> · <b>두 번 탭</b>하면 그 부분 확대·가운데 · 🔍로 남은 때 표시',
-  clean:'유물을 <b>문지르면</b> 녹·때가 벗겨집니다 · <b>두 번 탭</b>으로 그 부분 확대 · 빈 곳 드래그로 회전',
+  rotate:'한 손가락 <b>회전</b> · 두 손가락 <b>확대·이동</b> · <b>두 번 탭</b>하면 그 부분 확대·가운데 · 🔍 남은 때 표시',
+  clean:'유물을 <b>문지르면</b> 녹·때가 벗겨집니다 · 두 손가락 <b>확대·이동</b> · <b>두 번 탭</b>으로 그 부분 확대',
 }:{
-  rotate:'좌드래그로 <b>회전</b> · <b>휠</b> 확대축소 · <b>더블클릭</b>으로 그 부분 확대·가운데 · 🔍로 남은 때 표시',
-  clean:'유물 위를 <b>문질러</b> 세척 · <b>더블클릭</b>으로 그 부분 확대 · <b>빈 곳/우클릭 드래그</b>로 회전',
+  rotate:'좌드래그 <b>회전</b> · <b>휠</b> 확대 · <b>우클릭 드래그로 이동</b> · <b>더블클릭</b>으로 그 부분 확대·가운데 · 🔍 남은 때',
+  clean:'유물 위를 <b>문질러</b> 세척 · <b>더블클릭</b>으로 확대 · <b>우클릭 드래그로 이동</b>',
 };
 function setHint(){ $('#hint').innerHTML=HINTS[mode]; showHint(); }
 let hintTimer=0;
@@ -857,7 +868,7 @@ function startGame(id){
     // 그 외에는 저장/진행 상태 그대로 이어하기 (reset 안 함)
     t.group.rotation.y=0;
     goto('game');
-    camTheta=0.5; camPhi=1.12; camRTarget=3.5; camR=3.5;
+    camTheta=0.5; camPhi=1.12; camRTarget=3.5; camR=3.5; camTargetGoal.set(0,0.15,0); camTarget.set(0,0.15,0);
     mode='rotate'; $$('.mode').forEach(x=>x.classList.toggle('on',x.dataset.mode==='rotate'));
     $('#toolBtn').classList.remove('show'); closeToolPop();
     $('#selBtn .nm').textContent=a.name;
@@ -885,7 +896,7 @@ function updateProgressUI(){
   active.pct=pct;
   $('#pct').textContent=pct.toFixed(0)+'%';
   $('#fill').style.width=pct+'%';
-  if(pct>=97&&!active.done&&document.body.classList.contains('ingame')){
+  if(pct>=95&&!active.done&&document.body.classList.contains('ingame')){
     active.done=true;
     restored[curArtifact]=true;
     unlockNext(curArtifact);
@@ -1115,7 +1126,7 @@ el.addEventListener('pointerdown',e=>{
     if(mode==='clean'&&!forceOrbit){
       const hits=raycastAt(e); dragKind=hits.length?'clean':'orbit';
       if(dragKind==='clean'){cleanAt(e);updateToolCursor(e);}
-    }else dragKind='orbit';
+    }else dragKind = forceOrbit ? 'pan' : 'orbit';   // 마우스 우클릭 드래그 → 이동
   }else if(pointers.size===2){
     Snd.stopClean();
     const p=[...pointers.values()];
@@ -1132,11 +1143,12 @@ el.addEventListener('pointermove',e=>{
     if(pinchD>0){camR=Math.max(1.8,Math.min(6.5,camR*pinchD/d));camRTarget=camR;}
     pinchD=d;
     const cx=(p[0].x+p[1].x)/2, cy=(p[0].y+p[1].y)/2;
-    camTheta-=(cx-lastCX)*0.006; camPhi=Math.max(0.04,Math.min(Math.PI-0.04,camPhi-(cy-lastCY)*0.005));
+    panBy(cx-lastCX, cy-lastCY);                 // 두 손가락 드래그 → 오브젝트 위치 이동
     lastCX=cx; lastCY=cy; return;
   }
   const dx=e.clientX-lastX, dy=e.clientY-lastY; lastX=e.clientX;lastY=e.clientY;
   if(mode==='clean'&&dragKind==='clean'){cleanAt(e);updateToolCursor(e);}
+  else if(dragKind==='pan'){ Snd.stopClean(); panBy(dx,dy); }
   else{ Snd.stopClean(); if(mode==='clean')updateToolCursor(e);
     camTheta-=dx*0.0065; camPhi=Math.max(0.04,Math.min(Math.PI-0.04,camPhi-dy*0.005)); }
   if(tapInfo&&Math.hypot(e.clientX-tapInfo.x,e.clientY-tapInfo.y)>10)tapInfo=null;
@@ -1190,7 +1202,11 @@ function animate(){
   requestAnimationFrame(animate);
   const dt=Math.min(0.05,clock.getDelta());
   if(introMode&&active) active.group.rotation.y += dt*0.28;   // 인트로: 유물 천천히 회전
-  if(active&&active.uniforms) active.uniforms.uHeat.value = heat?(0.35+0.35*Math.sin(performance.now()*0.005)):0;
+  if(active&&active.uniforms){                     // 🔍 켜면 강하게 / 80%↑ 부터는 자동으로 남은 때를 은은히 강조
+    let hv = heat ? (0.42+0.34*Math.sin(performance.now()*0.005)) : 0;
+    if(!heat && active.pct>=80){ hv = (0.14+0.12*Math.sin(performance.now()*0.004)) * Math.min(1,(active.pct-80)/15); }
+    active.uniforms.uHeat.value = hv;
+  }
   if(active&&active._amtDirty){active.amtTex.needsUpdate=true;active._amtDirty=false;}
   scrubPulse=Math.max(0,scrubPulse-dt*3.5);
   if(brushBristle&&brushBristleRest){
