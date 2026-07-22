@@ -579,6 +579,10 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name,wrap,posMap){
     },
     applyCavityInit(){ seed(); },
     reset(){ seed(); this.done=false; this.pct=0; this.dirtyStat=true; },
+    serialize(){ const out=new Uint8Array(dirt.length); for(let i=0;i<dirt.length;i++) out[i]=(dirt[i]*255)|0; return out; },
+    restore(arr){ if(!arr||arr.length!==dirt.length) return false;      // 저장된 오염 상태 복원(이어하기)
+      for(let i=0;i<dirt.length;i++){ dirt[i]=arr[i]/255; const b=i*4; amt[b]=amt[b+1]=amt[b+2]=amt[b+3]=arr[i]; }
+      this._amtDirty=true; this.remain=this.sample(); return true; },
   };
   seed();
   return t;
@@ -635,6 +639,8 @@ function loadArtifact(id, cb){
       loadPosImg(a.assets.pos, mesh, (posMap)=>{
         const t=buildCleanTarget(mesh,group,cav,mask,a.name,a.assets.wrap,posMap);
         applyMaterial(mesh,t,a.assets);
+        const sv=loadDirt(id); if(sv){ t.restore(sv); }               // 저장된 진행 상태 이어하기
+        if(restored[id]){ t.done=true; }                              // 이미 완료된 유물은 완료로 표시
         targets[id]=t; cb(t);
       });
     }, undefined, (err)=>{ console.error('glb load failed',id,err); cb(null); });
@@ -735,6 +741,20 @@ const unlocked={bapga:true};
 let curArtifact='bapga';
 function A(id){ return ARTIFACTS.find(a=>a.id===id); }
 function unlockNext(id){ const ps=ARTIFACTS.filter(a=>a.playable).map(a=>a.id); const i=ps.indexOf(id); if(i>=0&&i+1<ps.length) unlocked[ps[i+1]]=true; }
+
+/* ===== 진행 저장 / 이어하기 (localStorage) ===== */
+const SAVE_KEY='arGame_v1';
+function saveProgress(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify({restored,unlocked,cur:curArtifact})); }catch(e){} }
+function loadProgress(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(s){ Object.assign(restored,s.restored||{}); Object.assign(unlocked,s.unlocked||{}); unlocked.bapga=true; } }catch(e){} }
+function _b64enc(u8){ let s='',CH=0x8000; for(let i=0;i<u8.length;i+=CH) s+=String.fromCharCode.apply(null,u8.subarray(i,i+CH)); return btoa(s); }
+function _b64dec(b64){ const bin=atob(b64), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; }
+function saveDirt(id,t){ try{ if(t&&t.serialize) localStorage.setItem('arDirt_'+id, _b64enc(t.serialize())); }catch(e){} }
+function loadDirt(id){ try{ const b=localStorage.getItem('arDirt_'+id); return b?_b64dec(b):null; }catch(e){ return null; } }
+function clearDirt(id){ try{ localStorage.removeItem('arDirt_'+id); }catch(e){} }
+loadProgress();
+addEventListener('pagehide',()=>{ if(active) saveDirt(curArtifact,active); saveProgress(); });
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(active) saveDirt(curArtifact,active); saveProgress(); } });
+
 /* 첫 유물 프리로드 + 나머지 백그라운드 로드 */
 loadArtifact('bapga', (t)=>{
   const sb=$('#startBtn');
@@ -745,6 +765,7 @@ loadArtifact('bapga', (t)=>{
   ARTIFACTS.filter(x=>x.playable&&x.id!=='bapga').forEach(x=>loadArtifact(x.id,()=>{}));
 });
 function goto(scr){
+  if(scr!=='game' && active && document.body.classList.contains('ingame')){ saveDirt(curArtifact,active); saveProgress(); }  // 게임에서 나갈 때 진행 저장
   ['intro','hub','codex','finish'].forEach(sn=>{ const el=$('#'+sn); if(el) el.classList.toggle('show', sn===scr); });
   const inGame=(scr==='game');
   document.body.classList.toggle('ingame', inGame);
@@ -789,7 +810,9 @@ function startGame(id){
     if(!t){ toast('유물을 불러오지 못했습니다'); return; }
     if(active&&active!==t) active.group.visible=false;
     active=t; curArtifact=id; t.group.visible=true;
-    t.reset(); t.group.rotation.y=0;
+    if(restored[id]){ clearDirt(id); t.reset(); }                    // 완료 유물 재입장 → 새로 시작
+    // 그 외에는 저장/진행 상태 그대로 이어하기 (reset 안 함)
+    t.group.rotation.y=0;
     goto('game');
     camTheta=0.5; camPhi=1.12; camRTarget=3.5; camR=3.5;
     mode='rotate'; $$('.mode').forEach(x=>x.classList.toggle('on',x.dataset.mode==='rotate'));
@@ -819,10 +842,11 @@ function updateProgressUI(){
   active.pct=pct;
   $('#pct').textContent=pct.toFixed(0)+'%';
   $('#fill').style.width=pct+'%';
-  if(pct>=97&&!active.done){
+  if(pct>=97&&!active.done&&document.body.classList.contains('ingame')){
     active.done=true;
     restored[curArtifact]=true;
     unlockNext(curArtifact);
+    clearDirt(curArtifact); saveProgress();                    // 완료: 진행 저장 정리 + 해금 저장
     $('#selBtn').classList.add('complete');
     Snd.win();
     setTimeout(()=>showFinish(), 850);
