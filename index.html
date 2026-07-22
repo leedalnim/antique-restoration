@@ -492,7 +492,27 @@ function loadCavityImg(url, cb){
   img.src=url;
 }
 
-function buildCleanTarget(mesh,group,cavityData,maskData,name,wrap){
+/* 텍셀별 3D 로컬 좌표 맵 로드 → 브러시가 UV 아일랜드를 넘어 다른 파트까지
+   닦는 문제 방지(3D 거리로 게이팅). RGBA: RGB=로컬좌표(bbox 정규화), A=유효 */
+function loadPosImg(url, mesh, cb){
+  if(!url){ cb(null); return; }
+  mesh.geometry.computeBoundingBox();
+  const bb=mesh.geometry.boundingBox, mn=bb.min.clone(), sz=new THREE.Vector3().subVectors(bb.max,bb.min);
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement('canvas'); c.width=c.height=AMT_S;
+    const x=c.getContext('2d'); x.drawImage(img,0,0,AMT_S,AMT_S);
+    const d=x.getImageData(0,0,AMT_S,AMT_S).data, n=AMT_S*AMT_S;
+    const px=new Float32Array(n),py=new Float32Array(n),pz=new Float32Array(n),val=new Uint8Array(n);
+    for(let i=0;i<n;i++){ val[i]=d[i*4+3]>8?1:0;
+      px[i]=mn.x+(d[i*4]/255)*sz.x; py[i]=mn.y+(d[i*4+1]/255)*sz.y; pz[i]=mn.z+(d[i*4+2]/255)*sz.z; }
+    cb({px,py,pz,val});
+  };
+  img.onerror=()=>cb(null);
+  img.src=url;
+}
+
+function buildCleanTarget(mesh,group,cavityData,maskData,name,wrap,posMap){
   const grimeCanvas=makeDirtCanvas(DIRT_S);                 // 색(정적)
   const grimeTex=new THREE.CanvasTexture(grimeCanvas); grimeTex.flipY=false; grimeTex.anisotropy=4;
   if(wrap){ grimeTex.wrapS=grimeTex.wrapT=THREE.RepeatWrapping; }
@@ -521,18 +541,21 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name,wrap){
     t.initRemain=n?s/n:1; t.remain=t.initRemain; t._amtDirty=true;
   }
   const t={
-    mesh, group, grimeTex, amtTex, S:DIRT_S,
+    mesh, group, grimeTex, amtTex, S:DIRT_S, posMap,
     name:name,
     dirtyStat:false, done:false, pct:0, remain:1, initRemain:1, _amtDirty:false,
-    brush(u,v,rPx,tool){
+    brush(u,v,rPx,tool,hx,hy,hz,r3d){
       if(wrap){ u=((u%1)+1)%1; v=((v%1)+1)%1; }             // 타일 UV → 단일 타일에 기록
       const cx=u*N, cy=v*N, R=Math.max(1.2,rPx*(N/DIRT_S)), R2=R*R;
       const x0=Math.max(0,Math.floor(cx-R)),x1=Math.min(N-1,Math.ceil(cx+R));
       const y0=Math.max(0,Math.floor(cy-R)),y1=Math.min(N-1,Math.ceil(cy+R));
+      const gate=posMap&&r3d>0, r3d2=gate?r3d*r3d:0;         // 3D 거리 게이팅(파트 넘어감 방지)
       let touched=false;
       for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
         const dx=x-cx,dy=y-cy,dd=dx*dx+dy*dy; if(dd>R2)continue;
         const i=y*N+x, f=1-Math.sqrt(dd)/R, cav=cavityData?cavityData[i]:0, d0=dirt[i];
+        if(gate&&posMap.val[i]){ const qx=posMap.px[i]-hx,qy=posMap.py[i]-hy,qz=posMap.pz[i]-hz;
+          if(qx*qx+qy*qy+qz*qz>r3d2) continue; }             // 실제 3D 위치가 브러시 밖이면 건너뜀
         let nd=d0;
         if(tool==='swab'){ nd=d0 - f*1.0; }                        // 면봉: 정밀·구석홈까지 완전
         else if(tool==='brush'){                                    // 세척솔: 넓게 빠르나 홈·요철엔 때 남음
@@ -606,9 +629,11 @@ function loadArtifact(id, cb){
       group.visible=false;
       group.traverse(o=>{ if(o.isMesh){o.castShadow=true;o.receiveShadow=true;} });
       scene.add(group);
-      const t=buildCleanTarget(mesh,group,cav,mask,a.name,a.assets.wrap);
-      applyMaterial(mesh,t,a.assets);
-      targets[id]=t; cb(t);
+      loadPosImg(a.assets.pos, mesh, (posMap)=>{
+        const t=buildCleanTarget(mesh,group,cav,mask,a.name,a.assets.wrap,posMap);
+        applyMaterial(mesh,t,a.assets);
+        targets[id]=t; cb(t);
+      });
     }, undefined, (err)=>{ console.error('glb load failed',id,err); cb(null); });
   });
 }
@@ -679,23 +704,23 @@ const SRC='국가유산청 · 천년 신라 왕경 3D(공공누리 1유형)';
 const ARTIFACTS=[
   {id:'bapga', playable:true, name:'금동미륵보살반가사유상', era:'신라', material:'금동', desig:'국보', source:SRC,
    blurb:'한쪽 다리를 다른 무릎에 얹고 오른손 끝을 뺨에 가만히 댄 반가부좌. 깊은 사유에 잠긴 잔잔한 미소와 유려한 옷주름이 신라 불교 조각의 정수를 보여줍니다.',
-   assets:{glb:'khs_buddha.glb', c:'tex_in/T_24RE0001_C.png', m:'tex_in/T_24RE0001_M.png', n:'tex_in/T_24RE0001_N.png', ao:'tex_in/ao.png'},
+   assets:{glb:'khs_buddha.glb', c:'tex_in/T_24RE0001_C.png', m:'tex_in/T_24RE0001_M.png', n:'tex_in/T_24RE0001_N.png', ao:'tex_in/ao.png', pos:'tex_in/pos.png'},
    fit:{h:2.3,y:0.15,rx:0}},
   {id:'amita', playable:true, name:'금동아미타삼존불 판불', era:'신라', material:'금동', desig:'유물', source:SRC,
    blurb:'중앙의 아미타불과 좌우 협시보살을 한 판에 새기고 불꽃무늬 광배를 투각으로 뚫어낸 금동 판불(板佛). 서라벌 천년왕경의 화려한 불교 장엄을 보여줍니다.',
-   assets:{glb:'art2.glb', c:'tex2/art2_C.png', m:'tex2/art2_G.png', n:'tex2/art2_N.png', ao:'tex2/art2_ao.png'},
+   assets:{glb:'art2.glb', c:'tex2/art2_C.png', m:'tex2/art2_G.png', n:'tex2/art2_N.png', ao:'tex2/art2_ao.png', pos:'tex2/pos.png'},
    fit:{h:2.55,y:0.02,rx:0}},
   {id:'naut', playable:true, name:'앵무조개잔', era:'신라', material:'앵무조개·금속', desig:'유물', source:SRC,
    blurb:'남태평양 앵무조개 껍데기에 금속 테와 굽을 두른 이국적인 잔. 자연이 빚은 나선 무늬가 서라벌 신라인의 국제 교역과 미의식을 보여줍니다.',
-   assets:{glb:'art3.glb', c:'tex3/art3_C.png', m:'tex3/art3_P.png', n:'tex3/art3_N.png', ao:'tex3/art3_ao.png'},
+   assets:{glb:'art3.glb', c:'tex3/art3_C.png', m:'tex3/art3_P.png', n:'tex3/art3_N.png', ao:'tex3/art3_ao.png', pos:'tex3/pos.png'},
    fit:{h:2.1,y:0.05,rx:0}},
   {id:'lion', playable:true, name:'사자모양 곱돌향로 뚜껑', era:'신라', material:'곱돌(활석)', desig:'유물', source:SRC,
    blurb:'향을 사르는 향로 뚜껑을 장식한 사자상. 무른 곱돌(활석)을 깎아 갈기와 근육을 생동감 있게 새긴 신라 석공예의 솜씨가 담겨 있습니다.',
-   assets:{glb:'art4.glb', c:'tex4/art4_C.png', m:'tex4/art4_M.png', n:'tex4/art4_N.png', ao:'tex4/art4_ao.png'},
+   assets:{glb:'art4.glb', c:'tex4/art4_C.png', m:'tex4/art4_M.png', n:'tex4/art4_N.png', ao:'tex4/art4_ao.png', pos:'tex4/pos.png'},
    fit:{h:2.5,y:0.02,rx:0}},
   {id:'gold', playable:true, name:'금제 꾸미개', era:'신라', material:'금·보석', desig:'유물', source:SRC,
    blurb:'금알갱이를 촘촘히 붙이는 누금세공과 붉은 보석으로 화려하게 꾸민 신라의 금제 장신구. 정교한 세공이 황금의 나라 신라의 공예 수준을 보여줍니다.',
-   assets:{glb:'art5.glb', c:'tex5/T_24CL0016_C.png', m:'tex5/T_24CL0016_R.png', n:'tex5/T_24CL0016_N.png', ao:'tex5/art5_ao.png'},
+   assets:{glb:'art5.glb', c:'tex5/T_24CL0016_C.png', m:'tex5/T_24CL0016_R.png', n:'tex5/T_24CL0016_N.png', ao:'tex5/art5_ao.png', pos:'tex5/pos.png'},
    fit:{h:2.2,y:0.04,rx:0}},
   {id:'jade', playable:false, name:'경옥제 향로', era:'신라', material:'경옥(硬玉)', desig:'유물', source:SRC,
    blurb:'단단한 옥돌을 깎아 만든 향로. 둥근 몸통과 세 다리, 귀 손잡이, 보주형 꼭지를 갖춘 형태에 옥을 다루는 신라 장인의 솜씨가 담겼습니다.',
@@ -965,7 +990,7 @@ const el=renderer.domElement;
 function ndc(e){return new THREE.Vector2((e.clientX/innerWidth)*2-1,-(e.clientY/innerHeight)*2+1);}
 function pickMeshes(){ return active?[active.mesh]:[]; }
 function raycastAt(e){ raycaster.setFromCamera(ndc(e),camera); return raycaster.intersectObjects(pickMeshes(),true); }
-const _vA=new THREE.Vector3(),_vB=new THREE.Vector3(),_vC=new THREE.Vector3();
+const _vA=new THREE.Vector3(),_vB=new THREE.Vector3(),_vC=new THREE.Vector3(),_wsV=new THREE.Vector3();
 function pxRadius(h,worldR,S){
   const f=h.face; if(!f)return Math.max(3,worldR*S*0.2);
   const geo=h.object.geometry, pos=geo.attributes.position, uv=geo.attributes.uv;
@@ -987,16 +1012,20 @@ function cleanAt(e){
   if(!hits.length||!hits[0].uv||!active){lastHit=null;return;}
   const h=hits[0], u=h.uv.x, v=h.uv.y, T=TOOLS[tool];
   const r=pxRadius(h,T.wr,active.S);
+  // 3D 게이팅용: 히트 지점을 메시 로컬 좌표로, 반경을 로컬 스케일로 환산
+  const hl=active.mesh.worldToLocal(h.point.clone());
+  const ws=active.mesh.getWorldScale(_wsV).x||1, r3d=(T.wr/ws)*1.35;
+  const hx=hl.x,hy=hl.y,hz=hl.z;
   let moved=0;
   if(lastHit){
     let dx=u-lastHit.u,dy=v-lastHit.v;
     const dist=Math.hypot(dx,dy)*active.S; moved=dist;
-    if(dist>r*7){ active.brush(u,v,r,tool); }
+    if(dist>r*7){ active.brush(u,v,r,tool,hx,hy,hz,r3d); }
     else{
       const steps=Math.min(14,Math.max(1,Math.ceil(dist/(r*0.45))));
-      for(let i=1;i<=steps;i++) active.brush(lastHit.u+dx*i/steps,lastHit.v+dy*i/steps,r,tool);
+      for(let i=1;i<=steps;i++) active.brush(lastHit.u+dx*i/steps,lastHit.v+dy*i/steps,r,tool,hx,hy,hz,r3d);
     }
-  }else active.brush(u,v,r,tool);
+  }else active.brush(u,v,r,tool,hx,hy,hz,r3d);
   lastHit={u,v};
   scrubPulse=1;
   Snd.keepClean(tool,Math.min(1,moved/(r*2)));
