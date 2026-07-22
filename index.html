@@ -277,6 +277,7 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
 <div id="toast"></div>
 
 <div id="sidebtns">
+  <button class="sbtn on" id="musicBtn" aria-label="배경음악"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg></button>
   <button class="sbtn" id="zoomIn" aria-label="확대">＋</button>
   <button class="sbtn" id="zoomOut" aria-label="축소">－</button>
   <button class="sbtn" id="heatBtn" aria-label="오염표시"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
@@ -396,11 +397,57 @@ const Snd=(function(){
     g.gain.exponentialRampToValueAtTime(0.0001,t+(dur||0.15));
     o.start(t); o.stop(t+(dur||0.15)+0.02);
   }
+  /* ---- 잔잔한 배경 앰비언트(오음계 패드 + 저음 드론 + 리버브) ---- */
+  let ambient=null, ambTimer=0, ambOn=false;
+  const AMB_VOL=0.19;
+  const SCALE=[261.63,293.66,329.63,392.00,440.00,523.25,587.33,659.25]; // C D E G A C D E (펜타토닉)
+  function makeReverb(a){
+    const len=(a.sampleRate*2.8)|0, ir=a.createBuffer(2,len,a.sampleRate);
+    for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.6);}
+    const c=a.createConvolver(); c.buffer=ir; return c;
+  }
+  function padNote(a,dest,freq,vol,dur){
+    const o1=a.createOscillator(),o2=a.createOscillator(),g=a.createGain(),f=a.createBiquadFilter();
+    o1.type='sine'; o2.type='triangle'; o1.frequency.value=freq; o2.frequency.value=freq; o2.detune.value=-5;
+    f.type='lowpass'; f.frequency.value=1100; f.Q.value=0.3; g.gain.value=0;
+    o1.connect(f); o2.connect(f); f.connect(g); g.connect(dest);
+    const t=a.currentTime;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+2.2);
+    g.gain.linearRampToValueAtTime(0.0001,t+dur);
+    o1.start(t); o2.start(t); o1.stop(t+dur+0.1); o2.stop(t+dur+0.1);
+  }
+  function startAmbient(){
+    ambOn=true; if(ambient)return; const a=ctx();
+    const master=a.createGain(); master.gain.value=0;
+    const rev=makeReverb(a), revG=a.createGain(); revG.gain.value=0.55;
+    master.connect(a.destination); master.connect(rev); rev.connect(revG); revG.connect(a.destination);
+    const d1=a.createOscillator(),d2=a.createOscillator(),dg=a.createGain(),df=a.createBiquadFilter();
+    d1.type='sine'; d2.type='sine'; d1.frequency.value=130.81; d2.frequency.value=131.2;
+    df.type='lowpass'; df.frequency.value=380; dg.gain.value=0.06;
+    d1.connect(df); d2.connect(df); df.connect(master); d1.start(); d2.start();
+    ambient={master,drone:[d1,d2]};
+    master.gain.setTargetAtTime(AMB_VOL,a.currentTime,3.0);
+    (function step(){
+      if(!ambient)return;
+      padNote(a,master,SCALE[(Math.random()*SCALE.length)|0],0.06+Math.random()*0.04,5+Math.random()*3.5);
+      if(Math.random()<0.4) padNote(a,master,SCALE[3+((Math.random()*5)|0)]*2,0.028,4);
+      ambTimer=setTimeout(step,3200+Math.random()*3800);
+    })();
+  }
+  function stopAmbient(){
+    ambOn=false; if(!ambient)return; const a=ac; clearTimeout(ambTimer);
+    try{ambient.master.gain.setTargetAtTime(0,a.currentTime,1.0);}catch(e){}
+    const amb=ambient; ambient=null;
+    setTimeout(()=>{try{amb.drone[0].stop();amb.drone[1].stop();}catch(e){}},1400);
+  }
   return {
     keepClean,stopClean,
     pop(){ping(300,0.12,'sine',0.16);},
     win(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>ping(f,0.22,'triangle',0.13),i*110));},
     resume(){ctx();},
+    startAmbient,stopAmbient,
+    toggleAmbient(){ if(ambOn)stopAmbient(); else startAmbient(); return ambOn; },
+    isAmbient(){ return ambOn; },
   };
 })();
 
@@ -714,7 +761,7 @@ function loadArtifact(id, cb){
 
 /* ---------- 인트로 → 시작 ---------- */
 let introMode=true;
-$('#startBtn').onclick=()=>{ if($('#startBtn').disabled) return; Snd.resume(); goto('hub'); };
+$('#startBtn').onclick=()=>{ if($('#startBtn').disabled) return; Snd.resume(); Snd.startAmbient(); syncMusicBtn(); goto('hub'); };
 
 /* =========================================================
    상태 / UI
@@ -775,6 +822,8 @@ $('#zoomIn').onclick=()=>{camRTarget=Math.max(1.8,camRTarget-0.55);};
 $('#zoomOut').onclick=()=>{camRTarget=Math.min(6.5,camRTarget+0.55);};
 let heat=false;
 $('#heatBtn').onclick=()=>{ heat=!heat; $('#heatBtn').classList.toggle('on',heat); toast(heat?'남은 오염 표시 켜짐':'오염 표시 꺼짐'); };
+function syncMusicBtn(){ const b=$('#musicBtn'); if(b) b.classList.toggle('on', Snd.isAmbient()); }
+$('#musicBtn').onclick=()=>{ const on=Snd.toggleAmbient(); syncMusicBtn(); toast(on?'배경음악 켜짐':'배경음악 꺼짐'); };
 $('#resetBtn').onclick=()=>{ Snd.stopClean(); camTheta=0.5;camPhi=1.12;camRTarget=3.5; camTargetGoal.set(0,0.15,0); toast('제자리로 되돌렸습니다'); };
 
 /* ===== 화면 전환 / 유물 컬렉션 ===== */
