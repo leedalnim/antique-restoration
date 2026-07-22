@@ -94,6 +94,19 @@ canvas{display:block;cursor:grab}
   box-shadow:0 6px 20px rgba(0,0,0,.55);opacity:0;transition:opacity .4s}
 #hint.show{opacity:1}
 #hint b{color:var(--brass-bright);font-weight:700}
+#helpPanel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.96);z-index:14;
+  width:min(90vw,430px);max-height:82vh;overflow:auto;
+  background:rgba(12,8,4,.96);-webkit-backdrop-filter:blur(16px) saturate(1.1);backdrop-filter:blur(16px) saturate(1.1);
+  border:1.5px solid rgba(222,182,98,.42);border-radius:16px;padding:26px 24px 22px;
+  box-shadow:0 16px 48px rgba(0,0,0,.62);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;color:#f0e4c8}
+#helpPanel.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+#helpPanel h3{font-family:'MaruBuri',serif;color:var(--brass-bright);font-size:19px;margin:0 0 16px;font-weight:800;letter-spacing:.04em}
+#helpBody{font-size:15px;line-height:2.05}
+#helpBody .k{color:var(--brass-bright);font-weight:800}
+#helpClose{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;
+  border:1.5px solid rgba(222,182,98,.4);background:rgba(44,30,14,.75);color:#f0dcae;font-size:15px;font-weight:800;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.5)}
+#helpClose:active{transform:scale(.9)}
 #sidebtns{position:fixed;right:10px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;gap:8px}
 .sbtn{width:46px;height:46px;border-radius:50%;border:1.5px solid rgba(222,182,98,.32);
   background:rgba(22,16,8,.46);-webkit-backdrop-filter:blur(10px) saturate(1.1);backdrop-filter:blur(10px) saturate(1.1);
@@ -232,6 +245,7 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
 
 <button id="helpBtn" aria-label="도움말">?</button>
 <div id="hint"></div>
+<div id="helpPanel"><button id="helpClose" aria-label="닫기">✕</button><h3>조작 안내</h3><div id="helpBody"></div></div>
 
 <div id="dock">
   <div id="bar2">
@@ -707,21 +721,22 @@ const TOOLS={
 };
 const isTouch=('ontouchstart' in window)&&navigator.maxTouchPoints>0;
 const HINTS=isTouch?{
-  rotate:'한 손가락 <b>회전</b> · 두 손가락 <b>확대·이동</b> · <b>두 번 탭</b>하면 그 부분 확대·가운데 · 🔍 남은 때 표시',
-  clean:'유물을 <b>문지르면</b> 녹·때가 벗겨집니다 · 두 손가락 <b>확대·이동</b> · <b>두 번 탭</b>으로 그 부분 확대',
+  rotate:'한 손가락으로 <b>회전</b> · 두 손가락으로 <b>확대·회전</b> · <b>두 번 탭</b>하면 그 부분 확대·가운데',
+  clean:'유물을 <b>문지르면</b> 녹·때가 벗겨집니다 · <b>두 번 탭</b>으로 그 부분 확대 · 빈 곳 드래그로 회전',
 }:{
-  rotate:'좌드래그 <b>회전</b> · <b>휠</b> 확대 · <b>우클릭 드래그로 이동</b> · <b>더블클릭</b>으로 그 부분 확대·가운데 · 🔍 남은 때',
-  clean:'유물 위를 <b>문질러</b> 세척 · <b>더블클릭</b>으로 확대 · <b>우클릭 드래그로 이동</b>',
+  rotate:'좌드래그 <b>회전</b> · <b>휠</b> 확대 · <b>더블클릭</b>으로 그 부분 확대·가운데 · <b>우클릭 드래그</b> 이동',
+  clean:'유물 위를 <b>문질러</b> 세척 · <b>더블클릭</b>으로 확대 · <b>빈 곳/우클릭 드래그</b>로 회전',
 };
 const FULL_HELP = isTouch
- ? '<b>조작 안내</b><br>· 한 손가락 드래그 — 회전<br>· 두 손가락 — 확대 / 이동<br>· <b>두 번 탭</b> — 그 부분 확대·가운데<br>· 하단 <b>청소</b> 모드에서 문질러 세척<br>· 도구 — 🌬️에어블로워(넓게)·🖌️세척솔(때)·🧿면봉(구석)<br>· 🔍 남은 때 표시 · ↻ 제자리로'
- : '<b>조작 안내</b><br>· 좌드래그 — 회전 · 휠 — 확대 · <b>우클릭 드래그</b> — 이동<br>· <b>더블클릭</b> — 그 부분 확대·가운데<br>· <b>청소</b> 모드에서 문질러 세척<br>· 도구 — 에어블로워(넓게)·세척솔(때)·면봉(구석)<br>· 🔍 남은 때 표시 · ↻ 제자리로';
-function setHint(){ const h=$('#hint'); h.dataset.full=''; h.style.textAlign=''; h.innerHTML=HINTS[mode]; showHint(); }
+ ? '<span class="k">한 손가락</span> 드래그 — 회전<br><span class="k">두 손가락</span> — 확대 · 회전<br><span class="k">두 번 탭</span> — 그 부분 확대·가운데<br><span class="k">청소</span> 모드에서 문질러 세척<br><span class="k">도구</span> — 에어블로워(넓게) · 세척솔(때) · 면봉(구석)<br><span class="k">🔍</span> — 남은 때 표시<br><span class="k">↻</span> — 제자리로'
+ : '<span class="k">좌드래그</span> — 회전 · <span class="k">휠</span> — 확대<br><span class="k">우클릭 드래그</span> — 이동<br><span class="k">더블클릭</span> — 그 부분 확대·가운데<br><span class="k">청소</span> 모드에서 문질러 세척<br><span class="k">도구</span> — 에어블로워 · 세척솔 · 면봉<br><span class="k">🔍</span> 남은 때 · <span class="k">↻</span> 제자리로';
+function setHint(){ $('#hint').innerHTML=HINTS[mode]; showHint(); }
 let hintTimer=0;
-function showHint(t){ $('#hint').classList.add('show'); clearTimeout(hintTimer); hintTimer=setTimeout(()=>$('#hint').classList.remove('show'), t||4200); }
-$('#helpBtn').onclick=()=>{ const h=$('#hint');
-  if(h.classList.contains('show')&&h.dataset.full==='1'){ h.classList.remove('show'); clearTimeout(hintTimer); h.dataset.full=''; }
-  else { h.innerHTML=FULL_HELP; h.dataset.full='1'; h.style.textAlign='left'; showHint(9000); } };
+function showHint(){ $('#hint').classList.add('show'); clearTimeout(hintTimer); hintTimer=setTimeout(()=>$('#hint').classList.remove('show'),4200); }
+function openHelp(){ $('#helpBody').innerHTML=FULL_HELP; $('#hint').classList.remove('show'); $('#helpPanel').classList.add('show'); }
+function closeHelp(){ $('#helpPanel').classList.remove('show'); }
+$('#helpBtn').onclick=()=>{ $('#helpPanel').classList.contains('show')?closeHelp():openHelp(); };
+$('#helpClose').onclick=closeHelp;
 let toastTimer=0;
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1400); }
 
@@ -1153,7 +1168,7 @@ el.addEventListener('pointermove',e=>{
     if(pinchD>0){camR=Math.max(1.8,Math.min(6.5,camR*pinchD/d));camRTarget=camR;}
     pinchD=d;
     const cx=(p[0].x+p[1].x)/2, cy=(p[0].y+p[1].y)/2;
-    panBy(cx-lastCX, cy-lastCY);                 // 두 손가락 드래그 → 오브젝트 위치 이동
+    camTheta-=(cx-lastCX)*0.006; camPhi=Math.max(0.04,Math.min(Math.PI-0.04,camPhi-(cy-lastCY)*0.005));  // 두 손가락 드래그 → 회전
     lastCX=cx; lastCY=cy; return;
   }
   const dx=e.clientX-lastX, dy=e.clientY-lastY; lastX=e.clientX;lastY=e.clientY;
