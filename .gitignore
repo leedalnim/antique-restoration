@@ -41,3 +41,5 @@ heat_*.js
 heat_*.png
 dtap_*.png
 mobile_look.js
+pwa_*.png
+pwa_test.js
