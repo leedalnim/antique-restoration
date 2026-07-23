@@ -67,10 +67,11 @@ canvas{display:block;cursor:grab}
 #plaque .pct{font-family:'MapoGeumbitnaru',serif;font-weight:800;font-size:16px;color:var(--brass-bright)}
 /* 하단 청소 도구 3종 (직접 나열) */
 #tools{display:flex;gap:8px;pointer-events:auto}
-#tools .tool{flex:1;min-height:58px;border-radius:8px;border:2px solid var(--parch-line);background:var(--parch);
-  color:var(--parch-text);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  font-size:13px;font-weight:800;white-space:nowrap;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.55)}
-#tools .tool .ic{width:22px;height:22px}
+#tools .tool{flex:1;min-height:46px;border-radius:8px;border:2px solid var(--parch-line);background:var(--parch);
+  color:var(--parch-text);display:flex;flex-direction:row;align-items:center;justify-content:center;gap:7px;
+  font-size:13.5px;font-weight:800;white-space:nowrap;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.55)}
+#tools .tool .em{display:flex}
+#tools .tool .ic{width:20px;height:20px}
 #tools .tool.on{background:linear-gradient(180deg,var(--gold-a),var(--gold-b));color:#1d1204;border-color:#fff3d4}
 #tools .tool:active{transform:translateY(1px)}
 @media(min-width:560px){ #dock{left:50%;right:auto;transform:translateX(-50%);width:600px} }
@@ -124,13 +125,17 @@ canvas{display:block;cursor:grab}
   padding:11px 20px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;
   transition:opacity .2s, transform .2s;box-shadow:0 8px 24px rgba(0,0,0,.6)}
 #toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
-#doneCard{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9;pointer-events:none}
-#doneCard.show{display:flex}
+#doneCard{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:12;
+  pointer-events:none;background:rgba(8,5,2,.42);backdrop-filter:blur(2px)}
+#doneCard.show{display:flex;pointer-events:auto}
 #doneCard .card{background:linear-gradient(180deg,#f4e6c0,#cfa95e);color:#241704;border:2px solid #fff3d4;
-  border-radius:5px;padding:22px 36px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.65);
-  animation:pop .55s cubic-bezier(.2,1.4,.4,1)}
+  border-radius:12px;padding:24px 30px 18px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.65);
+  max-width:min(340px,86vw);animation:pop .55s cubic-bezier(.2,1.4,.4,1)}
+#doneCard .dc-em{font-size:34px;line-height:1;margin-bottom:2px}
 #doneCard h2{font-family:'MapoGeumbitnaru',serif;font-weight:800;font-size:22px;letter-spacing:.1em}
-#doneCard p{margin-top:6px;font-size:13px}
+#doneCard .dc-nm{font-weight:800;font-size:15px;margin-top:4px;color:#3a2508}
+#doneCard p{margin-top:9px;font-size:12.5px;line-height:1.6;color:#4a3413}
+#doneCard .dc-tap{margin-top:14px;font-size:10.5px;letter-spacing:.03em;color:#7a5a28;opacity:.8}
 @keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
 /* 95% 도달 시 '100% 채우기' 물어보는 카드 */
 #finishAsk{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 72px);transform:translate(-50%,-8px);
@@ -276,6 +281,14 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
 </div>
 
 <div id="toast"></div>
+
+<div id="doneCard"><div class="card">
+  <div class="dc-em">✨</div>
+  <h2>복원 완료</h2>
+  <div class="dc-nm" id="doneName"></div>
+  <p id="doneDesc"></p>
+  <div class="dc-tap">화면을 탭하면 계속</div>
+</div></div>
 
 <div id="finishAsk">
   <div class="ttl">거의 다 됐어요 ✨</div>
@@ -873,27 +886,27 @@ const LOCK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 const LOTUS_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20c-4.4 0-8-2.8-8-6.5 2.2 0 4 1.2 4.6 2.6C8.1 12 9.3 9.4 12 7c2.7 2.4 3.9 5 3.4 9 .6-1.4 2.4-2.6 4.6-2.6 0 3.7-3.6 6.5-8 6.5z"/><path d="M12 20c-1.9 0-3.4-2.6-3.4-5.7 0-2.1 1.4-4.5 3.4-6.3 2 1.8 3.4 4.2 3.4 6.3C15.4 17.4 13.9 20 12 20z"/></svg>';
 const SRC='국가유산청 · 천년 신라 왕경 3D(공공누리 1유형)';
 const ARTIFACTS=[
-  {id:'bapga', playable:true, name:'금동미륵보살반가사유상', era:'신라', material:'금동', desig:'국보', source:SRC,
+  {id:'bapga', playable:true, name:'금동미륵보살반가사유상', era:'신라', material:'금동', desig:'국보', source:SRC, short:'국보. 뺨에 살며시 댄 손끝에 천 년의 미소가 어렸다.',
    blurb:'한쪽 다리를 다른 무릎에 얹고 오른손 끝을 뺨에 가만히 댄 반가부좌. 깊은 사유에 잠긴 잔잔한 미소와 유려한 옷주름이 신라 불교 조각의 정수를 보여줍니다.',
    assets:{glb:'khs_buddha.glb', c:'tex_in/T_24RE0001_C.png', m:'tex_in/T_24RE0001_M.png', n:'tex_in/T_24RE0001_N.png', ao:'tex_in/ao.png', pos:'tex_in/pos.png'},
    fit:{h:2.3,y:0.15,rx:0}},
-  {id:'amita', playable:true, name:'금동아미타삼존불 판불', era:'신라', material:'금동', desig:'유물', source:SRC,
+  {id:'amita', playable:true, name:'금동아미타삼존불 판불', era:'신라', material:'금동', desig:'유물', source:SRC, short:'불꽃무늬 광배를 투각으로 뚫어낸 화려한 금동 판불.',
    blurb:'중앙의 아미타불과 좌우 협시보살을 한 판에 새기고 불꽃무늬 광배를 투각으로 뚫어낸 금동 판불(板佛). 서라벌 천년왕경의 화려한 불교 장엄을 보여줍니다.',
    assets:{glb:'art2.glb', c:'tex2/art2_C.png', m:'tex2/art2_G.png', n:'tex2/art2_N.png', ao:'tex2/art2_ao.png', pos:'tex2/pos.png'},
    fit:{h:2.55,y:0.02,rx:0}},
-  {id:'naut', playable:true, name:'앵무조개잔', era:'신라', material:'앵무조개·금속', desig:'유물', source:SRC,
+  {id:'naut', playable:true, name:'앵무조개잔', era:'신라', material:'앵무조개·금속', desig:'유물', source:SRC, short:'남태평양 앵무조개에 금속 테를 두른 이국의 잔.',
    blurb:'남태평양 앵무조개 껍데기에 금속 테와 굽을 두른 이국적인 잔. 자연이 빚은 나선 무늬가 서라벌 신라인의 국제 교역과 미의식을 보여줍니다.',
    assets:{glb:'art3.glb', c:'tex3/art3_C.png', m:'tex3/art3_P.png', n:'tex3/art3_N.png', ao:'tex3/art3_ao.png', pos:'tex3/pos.png'},
    fit:{h:2.1,y:0.05,rx:0}},
-  {id:'lion', playable:true, name:'사자모양 곱돌향로 뚜껑', era:'신라', material:'곱돌(활석)', desig:'유물', source:SRC,
+  {id:'lion', playable:true, name:'사자모양 곱돌향로 뚜껑', era:'신라', material:'곱돌(활석)', desig:'유물', source:SRC, short:'무른 곱돌을 깎아 갈기까지 생동감 있게 새긴 사자.',
    blurb:'향을 사르는 향로 뚜껑을 장식한 사자상. 무른 곱돌(활석)을 깎아 갈기와 근육을 생동감 있게 새긴 신라 석공예의 솜씨가 담겨 있습니다.',
    assets:{glb:'art4.glb', c:'tex4/art4_C.png', m:'tex4/art4_M.png', n:'tex4/art4_N.png', ao:'tex4/art4_ao.png', pos:'tex4/pos.png'},
    fit:{h:2.5,y:0.02,rx:0}},
-  {id:'gold', playable:true, name:'금제 꾸미개', era:'신라', material:'금·보석', desig:'유물', source:SRC,
+  {id:'gold', playable:true, name:'금제 꾸미개', era:'신라', material:'금·보석', desig:'유물', source:SRC, short:'금알갱이를 촘촘히 붙인 신라 누금세공의 정수.',
    blurb:'금알갱이를 촘촘히 붙이는 누금세공과 붉은 보석으로 화려하게 꾸민 신라의 금제 장신구. 정교한 세공이 황금의 나라 신라의 공예 수준을 보여줍니다.',
    assets:{glb:'art5.glb', c:'tex5/T_24CL0016_C.png', m:'tex5/T_24CL0016_R.png', n:'tex5/T_24CL0016_N.png', ao:'tex5/art5_ao.png', pos:'tex5/pos.png'},
    fit:{h:2.2,y:0.04,rx:0}},
-  {id:'jade', playable:false, name:'경옥제 향로', era:'신라', material:'경옥(硬玉)', desig:'유물', source:SRC,
+  {id:'jade', playable:false, name:'경옥제 향로', era:'신라', material:'경옥(硬玉)', desig:'유물', source:SRC, short:'단단한 옥을 깎아 만든 세 다리 향로.',
    blurb:'단단한 옥돌을 깎아 만든 향로. 둥근 몸통과 세 다리, 귀 손잡이, 보주형 꼭지를 갖춘 형태에 옥을 다루는 신라 장인의 솜씨가 담겼습니다.',
    assets:{glb:'art6.glb', c:'tex6/jade_C.png', m:'tex6/jade_M.png', r:'tex6/jade_R.png', n:'tex6/jade_N.png', ao:'tex6/art6_ao.png'},
    fit:{h:2.35,y:0.04,rx:0}},
@@ -952,7 +965,7 @@ function goto(scr){
   if(scr!=='game' && active && document.body.classList.contains('ingame')){ saveDirt(curArtifact,active); saveProgress(); }  // 게임에서 나갈 때 진행 저장
   ['intro','hub','codex','finish'].forEach(sn=>{ const el=$('#'+sn); if(el) el.classList.toggle('show', sn===scr); });
   const inGame=(scr==='game');
-  if(!inGame) hideFinishAsk();
+  if(!inGame){ hideFinishAsk(); $('#doneCard').classList.remove('show'); }
   document.body.classList.toggle('ingame', inGame);
   introMode=!inGame;
   if(scr==='hub') buildHub();
@@ -1048,8 +1061,23 @@ function completeArtifact(){
   $('#selBtn').classList.add('complete');
   hideFinishAsk();
   Snd.win();
-  setTimeout(()=>showFinish(), 850);
+  showDoneCard(A(curArtifact));                                 // 완료 팝업 + 짧은 유물 설명
 }
+let _doneTimer=0;
+function showDoneCard(a){
+  if(!a)return;
+  $('#doneName').textContent=a.name;
+  $('#doneDesc').textContent=a.short||a.blurb||'';
+  $('#doneCard').classList.add('show');
+  clearTimeout(_doneTimer); _doneTimer=setTimeout(advanceFromDone, 2600);
+}
+function advanceFromDone(){
+  clearTimeout(_doneTimer);
+  if(!$('#doneCard').classList.contains('show'))return;
+  $('#doneCard').classList.remove('show');
+  showFinish();
+}
+$('#doneCard').onclick=advanceFromDone;
 function showFinishAsk(){
   if(active&&active._askArmAt!=null&&active.pct<active._askArmAt)return;  // '계속 닦기' 후 조금 더 닦으면 다시 등장
   $('#finishAsk').classList.add('show');
