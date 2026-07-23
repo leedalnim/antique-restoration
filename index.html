@@ -810,6 +810,7 @@ function loadArtifact(id, cb){
   new THREE.GLTFLoader().load(a.assets.glb, (gltf)=>{
     const obj=gltf.scene; const meshes=[]; obj.traverse(o=>{ if(o.isMesh) meshes.push(o); });
     if(!meshes.length){ cb(null); return; }
+    meshes.forEach(m=>{ if(!m.geometry.attributes.normal) m.geometry.computeVertexNormals(); });  // 노멀 없는 메시(재구성 GLB 등) 대비
     const fit=a.fit||{}; obj.rotation.x=fit.rx||0;
     const box=new THREE.Box3().setFromObject(obj);
     const size=box.getSize(new THREE.Vector3()), ctr=box.getCenter(new THREE.Vector3());
@@ -954,6 +955,10 @@ const ARTIFACTS=[
    blurb:'경주 월정교를 지키던 돌사자. 둥근 얼굴과 다부진 몸집에 신라 석공의 익살과 솜씨가 함께 담겨 있습니다.',
    assets:{glb:'lion2.glb', c:'tex13/lion2_C.png', m:'tex13/lion2_M.png', n:'tex13/lion2_N.png', r:'tex13/lion2_R.png', ao:'tex13/lion2_ao.png'},
    fit:{h:2.2,y:0.04,rx:0}},
+  {id:'dog', playable:true, name:'개모양 토우', era:'신라', material:'도기(土偶)', desig:'유물', source:SRC, short:'흙으로 빚은 신라의 개 토우. 소박한 손길이 정겹다.',
+   blurb:'흙을 손으로 빚어 구운 신라의 개 모양 토우(土偶). 꾸밈없는 형태에 신라 사람들의 일상과 정서가 소박하게 담겨 있습니다.',
+   assets:{glb:'dog.glb', c:'tex14/dog_C.png', m:'tex14/dog_M.png', n:'tex14/dog_N.png', r:'tex14/dog_R.png', ao:'tex14/dog_ao.png'},
+   fit:{h:2.0,y:0.05,rx:0}},
   {id:'jade', playable:false, name:'경옥제 향로', era:'신라', material:'경옥(硬玉)', desig:'유물', source:SRC, short:'단단한 옥을 깎아 만든 세 다리 향로.',
    blurb:'단단한 옥돌을 깎아 만든 향로. 둥근 몸통과 세 다리, 귀 손잡이, 보주형 꼭지를 갖춘 형태에 옥을 다루는 신라 장인의 솜씨가 담겼습니다.',
    assets:{glb:'art6.glb', c:'tex6/jade_C.png', m:'tex6/jade_M.png', r:'tex6/jade_R.png', n:'tex6/jade_N.png', ao:'tex6/art6_ao.png'},
