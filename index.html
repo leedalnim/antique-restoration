@@ -695,8 +695,8 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name,wrap,posMap){
   if(maskData){ let c=0; for(let i=0;i<maskData.length;i++) if(maskData[i]) c++; maskUsable=c>200; }
   // 진행률 카운트 마스크: 실제 레이캐스트로 '닿는' 텍셀(위치맵)만 셈 → 못 닦는 여백이 100% 도달을 막지 않음
   const cntMask = posMap ? posMap.val : maskData;
-  let cntUsable=false;
-  if(cntMask){ let c=0; for(let i=0;i<cntMask.length;i++) if(cntMask[i]) c++; cntUsable=c>200; }
+  let cntUsable=false, cntN=0;
+  if(cntMask){ for(let i=0;i<cntMask.length;i++) if(cntMask[i]) cntN++; cntUsable=cntN>200; }
   function _cntAvg(){                                          // 남은 오염(닿는 텍셀 평균)
     if(cntUsable){ let s=0,n=0; for(let i=0;i<dirt.length;i++) if(cntMask[i]){ s+=dirt[i]; n++; } return n?s/n:0; }
     let s=0; for(let i=0;i<dirt.length;i++)s+=dirt[i]; return s/dirt.length;
@@ -712,7 +712,7 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name,wrap,posMap){
   }
   const t={
     mesh, group, grimeTex, amtTex, S:DIRT_S, posMap,
-    name:name,
+    name:name, cntCount:(cntUsable?cntN:N*N), gridLen:N*N, uniforms:null,
     dirtyStat:false, done:false, pct:0, remain:1, initRemain:1, _amtDirty:false,
     brush(u,v,rPx,tool,hx,hy,hz,r3d){
       if(wrap){ u=((u%1)+1)%1; v=((v%1)+1)%1; }             // 타일 UV → 단일 타일에 기록
@@ -789,30 +789,54 @@ function applyMaterial(mesh,target,assets){
   return mat;
 }
 
+/* 여러 메시(파트)를 하나의 유물로 묶는 래퍼 — 단일 메시면 서브 1개라 기존과 동일하게 동작 */
+function makeWrapper(group,name,subs){
+  const t={ group, name, subs, mesh:subs[0].mesh, done:false, pct:0, _askArmAt:null, dirtyStat:false, remain:1, initRemain:1 };
+  t.sample=function(){ let ri=0,rr=0; for(const s of subs){ s.remain=s.sample(); ri+=s.initRemain*s.cntCount; rr+=s.remain*s.cntCount; } t.initRemain=ri||1; return rr; };
+  t.finishClean=function(){ subs.forEach(s=>s.finishClean()); t.remain=0; t.pct=100; };
+  t.reset=function(){ subs.forEach(s=>s.reset()); t.done=false; t._askArmAt=null; t.pct=0; t.remain=t.sample(); t.dirtyStat=true; };
+  t.serialize=function(){ const ps=subs.map(s=>s.serialize()); const out=new Uint8Array(ps.reduce((a,p)=>a+p.length,0)); let o=0; for(const p of ps){ out.set(p,o); o+=p.length; } return out; };
+  t.restore=function(arr){ if(!arr)return false; let o=0; for(const s of subs){ const seg=arr.subarray(o,o+s.gridLen); if(seg.length===s.gridLen) s.restore(seg); o+=s.gridLen; } t.remain=t.sample(); return true; };
+  t.setHeat=function(v){ for(const s of subs){ if(s.uniforms) s.uniforms.uHeat.value=v; } };
+  t.flush=function(){ for(const s of subs){ if(s._amtDirty){ s.amtTex.needsUpdate=true; s._amtDirty=false; } } };
+  t.initRemain=subs.reduce((a,s)=>a+s.initRemain*s.cntCount,0)||1;
+  t.remain=subs.reduce((a,s)=>a+s.remain*s.cntCount,0);
+  return t;
+}
 function loadArtifact(id, cb){
   if(targets[id]){ cb(targets[id]); return; }
   const a=A(id); if(!a||!a.assets){ cb(null); return; }
-  loadCavityImg(a.assets.ao, (cav,mask)=>{
-    new THREE.GLTFLoader().load(a.assets.glb, (gltf)=>{
-      const obj=gltf.scene; let mesh=null; obj.traverse(o=>{ if(o.isMesh&&!mesh) mesh=o; });
-      const fit=a.fit||{}; obj.rotation.x=fit.rx||0;
-      const box=new THREE.Box3().setFromObject(obj);
-      const size=box.getSize(new THREE.Vector3()), ctr=box.getCenter(new THREE.Vector3());
-      const s=(fit.h||2.3)/size.y;
-      obj.position.set(obj.position.x-ctr.x, obj.position.y-ctr.y, obj.position.z-ctr.z);
-      const group=new THREE.Group(); group.add(obj); group.scale.setScalar(s);
-      group.position.y=(fit.y!==undefined?fit.y:0.15);
-      group.visible=false;
-      group.traverse(o=>{ if(o.isMesh){o.castShadow=true;o.receiveShadow=true;} });
-      scene.add(group);
-      const posMap = buildPosMap(mesh);                              // 게임 지오메트리로 직접 생성(좌표 일치)
-      const t=buildCleanTarget(mesh,group,cav,mask,a.name,a.assets.wrap,posMap);
-      applyMaterial(mesh,t,a.assets);
-      const sv=loadDirt(id); if(sv){ t.restore(sv); }                // 저장된 진행 상태 이어하기
-      if(restored[id]){ t.done=true; }                               // 이미 완료된 유물은 완료로 표시
-      targets[id]=t; cb(t);
-    }, undefined, (err)=>{ console.error('glb load failed',id,err); cb(null); });
-  });
+  const parts = a.assets.parts || [a.assets];
+  new THREE.GLTFLoader().load(a.assets.glb, (gltf)=>{
+    const obj=gltf.scene; const meshes=[]; obj.traverse(o=>{ if(o.isMesh) meshes.push(o); });
+    if(!meshes.length){ cb(null); return; }
+    const fit=a.fit||{}; obj.rotation.x=fit.rx||0;
+    const box=new THREE.Box3().setFromObject(obj);
+    const size=box.getSize(new THREE.Vector3()), ctr=box.getCenter(new THREE.Vector3());
+    const s=(fit.h||2.3)/size.y;
+    obj.position.set(obj.position.x-ctr.x, obj.position.y-ctr.y, obj.position.z-ctr.z);
+    const group=new THREE.Group(); group.add(obj); group.scale.setScalar(s);
+    group.position.y=(fit.y!==undefined?fit.y:0.15);
+    group.visible=false;
+    group.traverse(o=>{ if(o.isMesh){o.castShadow=true;o.receiveShadow=true;} });
+    scene.add(group);
+    const subs=new Array(meshes.length); let pending=meshes.length;
+    meshes.forEach((mesh,i)=>{
+      const pa = parts[i] || parts[parts.length-1] || a.assets;     // 파트가 메시보다 적으면 마지막 세트 재사용
+      loadCavityImg(pa.ao, (cav,mask)=>{
+        const posMap = buildPosMap(mesh);                            // 게임 지오메트리로 직접 생성(좌표 일치)
+        const sub=buildCleanTarget(mesh,group,cav,mask,a.name,a.assets.wrap,posMap);
+        applyMaterial(mesh,sub,pa);
+        subs[i]=sub;
+        if(--pending===0){
+          const t=makeWrapper(group,a.name,subs);
+          const sv=loadDirt(id); if(sv){ t.restore(sv); }            // 저장된 진행 상태 이어하기
+          if(restored[id]){ t.done=true; }                          // 이미 완료된 유물은 완료로 표시
+          targets[id]=t; cb(t);
+        }
+      });
+    });
+  }, undefined, (err)=>{ console.error('glb load failed',id,err); cb(null); });
 }
 
 /* ---------- 인트로 → 시작 ---------- */
@@ -955,7 +979,7 @@ function disposeOthers(keepId){
       scene.remove(t.group);
       t.group.traverse(o=>{ if(o.isMesh){ o.geometry&&o.geometry.dispose();
         const m=o.material; if(m){ ['map','normalMap','roughnessMap','metalnessMap','aoMap'].forEach(k=>{ if(m[k])m[k].dispose(); }); m.dispose(); } } });
-      t.grimeTex&&t.grimeTex.dispose(); t.amtTex&&t.amtTex.dispose();
+      (t.subs||[]).forEach(s=>{ s.grimeTex&&s.grimeTex.dispose(); s.amtTex&&s.amtTex.dispose(); });
     }catch(e){}
     delete targets[id];
   }
@@ -1109,7 +1133,7 @@ $('#replayBtn').onclick=()=>{ const id=curArtifact; if(!active) return;   // 완
   camTheta=0.5;camPhi=1.12;camRTarget=3.5;camTargetGoal.set(0,0.15,0); updateProgressUI(); toast('처음부터 다시 복원합니다'); };
 setInterval(()=>{
   if(!active)return;
-  if(active.dirtyStat){ active.remain=active.sample(); active.dirtyStat=false; updateProgressUI(); }
+  if(active.subs.some(s=>s.dirtyStat)){ active.subs.forEach(s=>s.dirtyStat=false); active.remain=active.sample(); updateProgressUI(); }
 },350);
 
 /* =========================================================
@@ -1270,7 +1294,7 @@ let lastX=0,lastY=0,pinchD=0,lastCX=0,lastCY=0,tapInfo=null,lastHit=null,brushTi
 let dragKind=null;
 const el=renderer.domElement;
 function ndc(e){return new THREE.Vector2((e.clientX/innerWidth)*2-1,-(e.clientY/innerHeight)*2+1);}
-function pickMeshes(){ return active?[active.mesh]:[]; }
+function pickMeshes(){ return active?active.subs.map(s=>s.mesh):[]; }
 function raycastAt(e){ raycaster.setFromCamera(ndc(e),camera); return raycaster.intersectObjects(pickMeshes(),true); }
 const _vA=new THREE.Vector3(),_vB=new THREE.Vector3(),_vC=new THREE.Vector3(),_wsV=new THREE.Vector3();
 function pxRadius(h,worldR,S){
@@ -1293,22 +1317,23 @@ function cleanAt(e){
   const hits=raycastAt(e);
   if(!hits.length||!hits[0].uv||!active){lastHit=null;return;}
   const h=hits[0], u=h.uv.x, v=h.uv.y, T=TOOLS[tool];
-  const r=pxRadius(h,T.wr,active.S);
+  const sub=active.subs.find(s=>s.mesh===h.object)||active.subs[0];   // 커서 밑 메시(파트) 선택
+  const r=pxRadius(h,T.wr,sub.S);
   // 3D 게이팅용: 히트 지점을 메시 로컬 좌표로, 반경을 로컬 스케일로 환산
-  const hl=active.mesh.worldToLocal(h.point.clone());
-  const ws=active.mesh.getWorldScale(_wsV).x||1, r3d=(T.wr/ws)*1.35;
+  const hl=sub.mesh.worldToLocal(h.point.clone());
+  const ws=sub.mesh.getWorldScale(_wsV).x||1, r3d=(T.wr/ws)*1.35;
   const hx=hl.x,hy=hl.y,hz=hl.z;
   let moved=0;
-  if(lastHit){
+  if(lastHit&&lastHit.sub===sub){                                     // 같은 파트 위에서 이어 칠할 때만 보간
     let dx=u-lastHit.u,dy=v-lastHit.v;
-    const dist=Math.hypot(dx,dy)*active.S; moved=dist;
-    if(dist>r*7){ active.brush(u,v,r,tool,hx,hy,hz,r3d); }
+    const dist=Math.hypot(dx,dy)*sub.S; moved=dist;
+    if(dist>r*7){ sub.brush(u,v,r,tool,hx,hy,hz,r3d); }
     else{
       const steps=Math.min(14,Math.max(1,Math.ceil(dist/(r*0.45))));
-      for(let i=1;i<=steps;i++) active.brush(lastHit.u+dx*i/steps,lastHit.v+dy*i/steps,r,tool,hx,hy,hz,r3d);
+      for(let i=1;i<=steps;i++) sub.brush(lastHit.u+dx*i/steps,lastHit.v+dy*i/steps,r,tool,hx,hy,hz,r3d);
     }
-  }else active.brush(u,v,r,tool,hx,hy,hz,r3d);
-  lastHit={u,v};
+  }else sub.brush(u,v,r,tool,hx,hy,hz,r3d);
+  lastHit={u,v,sub};
   scrubPulse=1;
   Snd.keepClean(tool,Math.min(1,moved/(r*2)));
   if(lastCleanHit){
@@ -1403,12 +1428,12 @@ function animate(){
   requestAnimationFrame(animate);
   const dt=Math.min(0.05,clock.getDelta());
   if(introMode&&active) active.group.rotation.y += dt*0.28;   // 인트로: 유물 천천히 회전
-  if(active&&active.uniforms){                     // 👁 켜면 강하게 / 80%↑ 부터는 자동으로 남은 때를 은은히 강조
+  if(active&&active.setHeat){                       // 👁 켜면 강하게 / 80%↑ 부터는 자동으로 남은 때를 은은히 강조
     let hv = heat ? (0.42+0.34*Math.sin(performance.now()*0.005)) : 0;
     if(!heat && active.pct>=80){ hv = (0.14+0.12*Math.sin(performance.now()*0.004)) * Math.min(1,(active.pct-80)/15); }
-    active.uniforms.uHeat.value = hv;
+    active.setHeat(hv);
   }
-  if(active&&active._amtDirty){active.amtTex.needsUpdate=true;active._amtDirty=false;}
+  if(active&&active.flush) active.flush();
   scrubPulse=Math.max(0,scrubPulse-dt*3.5);
   if(brushBristle&&brushBristleRest){
     const on=(mode==='clean'&&tool==='brush')?scrubPulse:0;
