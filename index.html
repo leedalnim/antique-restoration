@@ -906,6 +906,22 @@ const ARTIFACTS=[
    blurb:'금알갱이를 촘촘히 붙이는 누금세공과 붉은 보석으로 화려하게 꾸민 신라의 금제 장신구. 정교한 세공이 황금의 나라 신라의 공예 수준을 보여줍니다.',
    assets:{glb:'art5.glb', c:'tex5/T_24CL0016_C.png', m:'tex5/T_24CL0016_R.png', n:'tex5/T_24CL0016_N.png', ao:'tex5/art5_ao.png', pos:'tex5/pos.png'},
    fit:{h:2.2,y:0.04,rx:0}},
+  {id:'phoenix', playable:true, name:'금동제 봉황형장식구', era:'신라', material:'금동', desig:'유물', source:SRC, short:'봉황이 날개를 편 금동 장식. 서라벌 왕경의 화려한 금속공예.',
+   blurb:'봉황이 날개를 펼친 모습을 금동으로 빚은 장식구. 서라벌 천년왕경을 수놓은 신라 금속공예의 화려함과 상서로운 상징을 함께 보여줍니다.',
+   assets:{glb:'phoenix.glb', c:'tex7/phoenix_C.png', m:'tex7/phoenix_M.png', n:'tex7/phoenix_N.png', r:'tex7/phoenix_R.png', ao:'tex7/phoenix_ao.png'},
+   fit:{h:2.3,y:0.05,rx:0}},
+  {id:'horse', playable:true, name:'기마인물형토기', era:'신라', material:'도기', desig:'국보', source:SRC, short:'말을 탄 인물을 빚은 신라 도기. 국보로 이름난 명기(明器).',
+   blurb:'말을 탄 인물을 흙으로 빚어 구운 신라의 상형 토기. 죽은 이를 위한 명기(明器)로, 신라인의 복식과 말갖춤·내세관을 생생하게 전합니다.',
+   assets:{glb:'horse.glb', c:'tex8/horse_C.png', m:'tex8/horse_M.png', n:'tex8/horse_N.png', r:'tex8/horse_R.png', ao:'tex8/horse_ao.png'},
+   fit:{h:2.4,y:0.03,rx:0}},
+  {id:'censer', playable:true, name:'향로', era:'신라', material:'청동', desig:'유물', source:SRC, short:'향을 사르던 신라의 향로.',
+   blurb:'향을 사르는 데 쓴 신라의 향로. 불교 의례와 함께 서라벌에 퍼진 향 문화, 그리고 이를 받쳐 낸 신라 금속공예 솜씨를 보여줍니다.',
+   assets:{glb:'censer2.glb', c:'tex9/censer2_C.png', m:'tex9/censer2_M.png', n:'tex9/censer2_N.png', r:'tex9/censer2_R.png', ao:'tex9/censer2_ao.png'},
+   fit:{h:2.4,y:0.02,rx:0}},
+  {id:'cheonin', playable:true, name:'천인상', era:'신라', material:'금동', desig:'유물', source:SRC, short:'하늘을 나는 천인(天人)을 새긴 상. 불교의 비천(飛天).',
+   blurb:'하늘을 나는 천인(天人)을 새긴 상. 부처의 세계를 장엄하는 비천(飛天)으로, 신라 불교미술의 우아한 조형 감각을 보여줍니다.',
+   assets:{glb:'cheonin.glb', c:'tex10/cheonin_C.png', m:'tex10/cheonin_M.png', n:'tex10/cheonin_N.png', r:'tex10/cheonin_R.png', ao:'tex10/cheonin_ao.png'},
+   fit:{h:2.3,y:0.05,rx:0}},
   {id:'jade', playable:false, name:'경옥제 향로', era:'신라', material:'경옥(硬玉)', desig:'유물', source:SRC, short:'단단한 옥을 깎아 만든 세 다리 향로.',
    blurb:'단단한 옥돌을 깎아 만든 향로. 둥근 몸통과 세 다리, 귀 손잡이, 보주형 꼭지를 갖춘 형태에 옥을 다루는 신라 장인의 솜씨가 담겼습니다.',
    assets:{glb:'art6.glb', c:'tex6/jade_C.png', m:'tex6/jade_M.png', r:'tex6/jade_R.png', n:'tex6/jade_N.png', ao:'tex6/art6_ao.png'},
@@ -1032,6 +1048,9 @@ function showFinish(){
   goto('finish');
 }
 $('#toCodex').onclick=()=>goto('codex');
+/* 테스트용: 콘솔에서 __unlockAll() 또는 __play('phoenix') */
+window.__unlockAll=function(){ ARTIFACTS.forEach(a=>{ if(a.playable) unlocked[a.id]=true; }); saveProgress(); if($('#hub').classList.contains('show')) buildHub(); return '전체 잠금해제'; };
+window.__play=function(id){ unlocked[id]=true; startGame(id); };
 $('#codexBack').onclick=()=>goto('hub');
 $('#finReplay').onclick=()=>{ const id=curArtifact; clearDirt(id); const t=targets[id]; if(t) t.reset(); startGame(id); };  // 다시 복원 → 더러운 상태로 재시작
 $('#finHome').onclick=()=>goto('hub');
