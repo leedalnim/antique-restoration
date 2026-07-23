@@ -1100,8 +1100,8 @@ function updateProgressUI(){
   $('#pct').textContent=Math.floor(pct)+'%';
   $('#fill').style.width=pct+'%';
   if(!active.done && document.body.classList.contains('ingame')){
-    if(pct>=98) completeArtifact();                             // 98%↑ → 자동 100% 완성
-    else if(pct>=95) showFinishAsk();                           // 95%↑ → 100% 채울지 물어보기
+    if(pct>=96) completeArtifact();                             // 96%↑ → 자동 100% 완성
+    else if(pct>=90) showFinishAsk();                           // 90%↑ → 100% 채울지 물어보기(안쪽 등 못 닦는 부분 대비)
     else hideFinishAsk();
   }
   $('#replayBtn').classList.toggle('show', !!active.done);       // 완료 유물엔 '다시 복원' 노출
@@ -1356,7 +1356,8 @@ function cleanAt(e){
   if(++brushTick%3===0) burst(h.point,T.pn,tool==='blow'?0xd8c49a:0x9bb37a);
 }
 el.addEventListener('pointerdown',e=>{
-  el.setPointerCapture(e.pointerId); Snd.resume();
+  try{ el.setPointerCapture(e.pointerId); }catch(_){}   // 모바일 엣지케이스에서 throw 방지
+  Snd.resume();
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   const forceOrbit=(e.pointerType==='mouse'&&e.button!==0);
   if(pointers.size===1){
@@ -1412,6 +1413,10 @@ function endPointer(e){
 }
 el.addEventListener('pointerup',endPointer);
 el.addEventListener('pointercancel',endPointer);
+el.addEventListener('lostpointercapture',e=>{ if(pointers.has(e.pointerId)) endPointer(e); });
+/* 손가락을 캔버스 밖(버튼 위·화면 밖)에서 떼도 유령 포인터가 남지 않도록 window에서도 정리 */
+window.addEventListener('pointerup',e=>{ if(pointers.has(e.pointerId)) endPointer(e); });
+window.addEventListener('pointercancel',e=>{ if(pointers.has(e.pointerId)) endPointer(e); });
 el.addEventListener('wheel',e=>{e.preventDefault();camRTarget=Math.max(1.8,Math.min(6.5,camRTarget+Math.sign(e.deltaY)*0.4));},{passive:false});
 el.addEventListener('contextmenu',e=>e.preventDefault());
 el.addEventListener('pointermove',e=>{
