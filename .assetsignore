@@ -1,0 +1,10 @@
+.git
+node_modules
+_work7
+_dist
+*.zip
+package.json
+package-lock.json
+wrangler.jsonc
+.assetsignore
+.gitignore
