@@ -491,9 +491,16 @@ const Snd=(function(){
 
 /* ---------- 렌더러 / 씬 ---------- */
 const stage=$('#stage');
-const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-renderer.domElement.addEventListener('webglcontextlost',e=>{ e.preventDefault(); },false);  // 컨텍스트 유실 시 브라우저가 탭을 리로드하지 않도록
+const _MOBILE = navigator.maxTouchPoints>0 || ('ontouchstart' in window) || (window.matchMedia && matchMedia('(pointer:coarse)').matches);
+const _PR = Math.min(devicePixelRatio||1, _MOBILE?1.5:2);   // 모바일은 픽셀비 낮춰 GPU 메모리 절약(iOS 컨텍스트 유실 방지)
+const renderer=new THREE.WebGLRenderer({antialias:!_MOBILE,powerPreference:'high-performance'});
+renderer.setPixelRatio(_PR);
+/* WebGL 컨텍스트 유실(주로 iOS 메모리 부족) 시 얼어붙지 않게 → 진행 저장 후 자동 새로고침으로 복구 */
+renderer.domElement.addEventListener('webglcontextlost',e=>{ e.preventDefault();
+  try{ if(!_resetting){ if(active) saveDirt(curArtifact,active); saveProgress(); } }catch(_){}
+  try{ toast&&toast('메모리 정리 후 복구 중…'); }catch(_){}
+  setTimeout(()=>{ try{ location.reload(); }catch(_){} }, 500);
+},false);
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
@@ -1441,10 +1448,11 @@ let composer=null, bloomPass=null;
   if(!THREE.EffectComposer||!THREE.RenderPass||!THREE.UnrealBloomPass)return;
   composer=new THREE.EffectComposer(renderer);
   composer.addPass(new THREE.RenderPass(scene,camera));
-  bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.4,0.7,0.85);
+  const _bf=_MOBILE?0.5:1;                                    // 모바일 블룸 절반 해상도 → GPU 메모리 절약
+  bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth*_bf,innerHeight*_bf),0.4,0.7,0.85);
   composer.addPass(bloomPass);
   composer.setSize(innerWidth,innerHeight);
-  composer.setPixelRatio(Math.min(devicePixelRatio,2));
+  composer.setPixelRatio(_PR);
 })();
 addEventListener('resize',()=>{if(composer)composer.setSize(innerWidth,innerHeight);});
 
