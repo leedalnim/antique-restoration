@@ -108,6 +108,11 @@ canvas{display:block;cursor:grab}
   border:1.5px solid rgba(222,182,98,.4);background:rgba(44,30,14,.75);color:#f0dcae;font-size:15px;font-weight:800;
   cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.5)}
 #helpClose:active{transform:scale(.9)}
+#resetAll{display:block;width:100%;margin-top:20px;padding:11px;border-radius:9px;cursor:pointer;
+  border:1px solid rgba(200,120,90,.4);background:rgba(60,26,16,.5);color:#e6b09a;
+  font-size:13px;font-weight:700;letter-spacing:.02em;transition:background .2s}
+#resetAll.armed{background:linear-gradient(180deg,#a8412a,#7a2c18);border-color:#e08a6a;color:#ffe6da}
+#resetAll:active{transform:translateY(1px)}
 #sidebtns{position:fixed;right:10px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;gap:8px}
 .sbtn{width:46px;height:46px;border-radius:50%;border:1.5px solid rgba(222,182,98,.32);
   background:rgba(22,16,8,.46);-webkit-backdrop-filter:blur(10px) saturate(1.1);backdrop-filter:blur(10px) saturate(1.1);
@@ -266,7 +271,7 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
 <button id="helpBtn" aria-label="도움말">?</button>
 <button id="replayBtn">↻ 다시 복원</button>
 <div id="hint"></div>
-<div id="helpPanel"><button id="helpClose" aria-label="닫기">✕</button><h3>조작 안내</h3><div id="helpBody"></div></div>
+<div id="helpPanel"><button id="helpClose" aria-label="닫기">✕</button><h3>조작 안내</h3><div id="helpBody"></div><button id="resetAll">↺ 처음부터 다시 (모든 진행 초기화)</button></div>
 
 <div id="dock">
   <div id="tools">
@@ -875,9 +880,18 @@ function setHint(){ $('#hint').innerHTML=HINTS[mode]; showHint(); }
 let hintTimer=0;
 function showHint(){ $('#hint').classList.add('show'); clearTimeout(hintTimer); hintTimer=setTimeout(()=>$('#hint').classList.remove('show'),4200); }
 function openHelp(){ $('#helpBody').innerHTML=FULL_HELP; $('#hint').classList.remove('show'); $('#helpPanel').classList.add('show'); }
-function closeHelp(){ $('#helpPanel').classList.remove('show'); }
+function closeHelp(){ $('#helpPanel').classList.remove('show'); disarmReset(); }
 $('#helpBtn').onclick=()=>{ $('#helpPanel').classList.contains('show')?closeHelp():openHelp(); };
 $('#helpClose').onclick=closeHelp;
+/* 전체 초기화(도움말 패널) — 실수 방지 2단계 확인 */
+let _resetArmed=false,_resetT=0;
+function disarmReset(){ _resetArmed=false; clearTimeout(_resetT); const b=$('#resetAll'); if(b){ b.classList.remove('armed'); b.textContent='↺ 처음부터 다시 (모든 진행 초기화)'; } }
+$('#resetAll').onclick=()=>{
+  const b=$('#resetAll');
+  if(_resetArmed){ _resetting=true; try{ localStorage.clear(); }catch(e){} location.reload(); return; }
+  _resetArmed=true; b.classList.add('armed'); b.textContent='⚠ 한 번 더 누르면 완전히 초기화됩니다';
+  clearTimeout(_resetT); _resetT=setTimeout(disarmReset, 3500);
+};
 let toastTimer=0;
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1400); }
 
@@ -887,7 +901,6 @@ function setRotateMode(){
   $('#rotateBtn').classList.add('on');
   $$('.tool').forEach(x=>x.classList.remove('on'));
   toolCursor.visible=false; cursorRing.visible=false;
-  setHint();
 }
 $('#rotateBtn').onclick=()=>{ Snd.stopClean(); setRotateMode(); };
 $$('.tool').forEach(b=>b.onclick=()=>{
@@ -895,7 +908,6 @@ $$('.tool').forEach(b=>b.onclick=()=>{
   mode='clean';
   $('#rotateBtn').classList.remove('on');
   $$('.tool').forEach(x=>x.classList.toggle('on',x===b));
-  setHint();
 });
 
 $('#zoomIn').onclick=()=>{camRTarget=Math.max(1.8,camRTarget-0.55);};
@@ -972,11 +984,12 @@ function unlockNext(id){ const ps=ARTIFACTS.filter(a=>a.playable).map(a=>a.id); 
 
 /* ===== 진행 저장 / 이어하기 (localStorage) ===== */
 const SAVE_KEY='arGame_v1';
-function saveProgress(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify({restored,unlocked,cur:curArtifact})); }catch(e){} }
+let _resetting=false;
+function saveProgress(){ if(_resetting)return; try{ localStorage.setItem(SAVE_KEY, JSON.stringify({restored,unlocked,cur:curArtifact})); }catch(e){} }
 function loadProgress(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(s){ Object.assign(restored,s.restored||{}); Object.assign(unlocked,s.unlocked||{}); unlocked.bapga=true; } }catch(e){} }
 function _b64enc(u8){ let s='',CH=0x8000; for(let i=0;i<u8.length;i+=CH) s+=String.fromCharCode.apply(null,u8.subarray(i,i+CH)); return btoa(s); }
 function _b64dec(b64){ const bin=atob(b64), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; }
-function saveDirt(id,t){ try{ if(t&&t.serialize) localStorage.setItem('arDirt_'+id, _b64enc(t.serialize())); }catch(e){} }
+function saveDirt(id,t){ if(_resetting)return; try{ if(t&&t.serialize) localStorage.setItem('arDirt_'+id, _b64enc(t.serialize())); }catch(e){} }
 function loadDirt(id){ try{ const b=localStorage.getItem('arDirt_'+id); return b?_b64dec(b):null; }catch(e){ return null; } }
 function clearDirt(id){ try{ localStorage.removeItem('arDirt_'+id); }catch(e){} }
 loadProgress();
