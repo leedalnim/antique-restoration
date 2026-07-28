@@ -984,7 +984,9 @@ function unlockNext(id){ const ps=ARTIFACTS.filter(a=>a.playable).map(a=>a.id); 
 const SAVE_KEY='arGame_v1';
 let _resetting=false;
 function saveProgress(){ if(_resetting)return; try{ localStorage.setItem(SAVE_KEY, JSON.stringify({restored,unlocked,cur:curArtifact})); }catch(e){} }
-function loadProgress(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(s){ Object.assign(restored,s.restored||{}); Object.assign(unlocked,s.unlocked||{}); unlocked.bapga=true; } }catch(e){} }
+function loadProgress(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(s){ Object.assign(restored,s.restored||{}); Object.assign(unlocked,s.unlocked||{}); unlocked.bapga=true; } }catch(e){}
+  /* 보정: 완료한 유물은 항상 그다음 유물을 잠금해제(목록에서 유물을 빼도 진행이 막히지 않게) */
+  ARTIFACTS.forEach(a=>{ if(a.playable&&restored[a.id]) unlockNext(a.id); }); }
 function _b64enc(u8){ let s='',CH=0x8000; for(let i=0;i<u8.length;i+=CH) s+=String.fromCharCode.apply(null,u8.subarray(i,i+CH)); return btoa(s); }
 function _b64dec(b64){ const bin=atob(b64), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; }
 function saveDirt(id,t){ if(_resetting)return; try{ if(t&&t.serialize) localStorage.setItem('arDirt_'+id, _b64enc(t.serialize())); }catch(e){} }
