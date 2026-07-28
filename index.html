@@ -729,7 +729,9 @@ function buildCleanTarget(mesh,group,cavityData,maskData,name,wrap,posMap,seedAO
     _seedM=Uint8Array.from(_covM);
     for(let pass=0;pass<3;pass++){ const src=Uint8Array.from(_seedM);
       for(let y=0;y<N;y++)for(let x=0;x<N;x++){ const i=y*N+x; if(src[i])continue;
-        if((x>0&&src[i-1])||(x<N-1&&src[i+1])||(y>0&&src[i-N])||(y<N-1&&src[i+N])) _seedM[i]=1; } }
+        const L = x>0 ? i-1 : (wrap ? i+N-1 : i);       // wrap 유물은 좌우 팽창도 가로로 감쌈(구면 UV 이음새 채움)
+        const R = x<N-1 ? i+1 : (wrap ? i-N+1 : i);
+        if(src[L]||src[R]||(y>0&&src[i-N])||(y<N-1&&src[i+N])) _seedM[i]=1; } }
   }
   function seed(){                                            // 초기(더러운) 상태로 리셋 — 재복원용
     for(let i=0;i<N*N;i++){
@@ -984,7 +986,7 @@ const ARTIFACTS=[
    fit:{h:2.2,y:0.04,rx:0}},
   {id:'dog', playable:true, name:'개모양 토우', era:'신라', material:'도기(土偶)', desig:'유물', source:SRC, short:'흙으로 빚은 신라의 개 토우. 소박한 손길이 정겹다.',
    blurb:'흙을 손으로 빚어 구운 신라의 개 모양 토우(土偶). 꾸밈없는 형태에 신라 사람들의 일상과 정서가 소박하게 담겨 있습니다.',
-   assets:{glb:'dog.glb', c:'tex14/dog_C.webp', m:'tex14/dog_M.webp', n:'tex14/dog_N.webp', r:'tex14/dog_R.webp', ao:'tex14/dog_ao.webp'},
+   assets:{glb:'dog.glb', c:'tex14/dog_C.webp', m:'tex14/dog_M.webp', n:'tex14/dog_N.webp', r:'tex14/dog_R.webp', ao:'tex14/dog_ao.webp', wrap:true},
    fit:{h:2.0,y:0.05,rx:0}},
   {id:'jade', playable:false, name:'경옥제 향로', era:'신라', material:'경옥(硬玉)', desig:'유물', source:SRC, short:'단단한 옥을 깎아 만든 세 다리 향로.',
    blurb:'단단한 옥돌을 깎아 만든 향로. 둥근 몸통과 세 다리, 귀 손잡이, 보주형 꼭지를 갖춘 형태에 옥을 다루는 신라 장인의 솜씨가 담겼습니다.',
@@ -1366,7 +1368,8 @@ function pxRadius(h,worldR,S){
 function cleanAt(e){
   const hits=raycastAt(e);
   if(!hits.length||!hits[0].uv||!active){lastHit=null;return;}
-  const h=hits[0], u=h.uv.x, v=h.uv.y, T=TOOLS[tool];
+  const h=hits[0], T=TOOLS[tool];
+  let u=h.uv.x, v=h.uv.y; u-=Math.floor(u); v-=Math.floor(v);   // UV를 [0,1)로 감쌈(RepeatWrapping 유물의 이음새 슬라이버도 정상 청소)
   const sub=active.subs.find(s=>s.mesh===h.object)||active.subs[0];   // 커서 밑 메시(파트) 선택
   const r=pxRadius(h,T.wr,sub.S);
   // 3D 게이팅용: 히트 지점을 메시 로컬 좌표로, 반경을 로컬 스케일로 환산
