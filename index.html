@@ -95,6 +95,7 @@ canvas{display:block;cursor:grab}
   color:#f0dcae;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.5)}
 #replayBtn.show{display:flex}
 #replayBtn:active{transform:scale(.94)}
+#replayBtn.armed{border-color:rgba(224,120,72,.9);background:rgba(60,26,12,.82);color:#ffd9b0}
 #helpPanel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.96);z-index:14;
   width:min(90vw,430px);max-height:82vh;overflow:auto;
   background:rgba(12,8,4,.96);-webkit-backdrop-filter:blur(16px) saturate(1.1);backdrop-filter:blur(16px) saturate(1.1);
@@ -269,7 +270,7 @@ body:not(.ingame) #top,body:not(.ingame) #dock,body:not(.ingame) #sidebtns,body:
 </div>
 
 <button id="helpBtn" aria-label="도움말">?</button>
-<button id="replayBtn">↻ 다시 복원</button>
+<button id="replayBtn">↻ 처음부터</button>
 <div id="hint"></div>
 <div id="helpPanel"><button id="helpClose" aria-label="닫기">✕</button><h3>조작 안내</h3><div id="helpBody"></div><button id="resetAll">↺ 처음부터 다시 (모든 진행 초기화)</button></div>
 
@@ -1038,7 +1039,7 @@ function goto(scr){
   if(scr!=='game' && active && document.body.classList.contains('ingame')){ saveDirt(curArtifact,active); saveProgress(); }  // 게임에서 나갈 때 진행 저장
   ['intro','hub','codex','finish'].forEach(sn=>{ const el=$('#'+sn); if(el) el.classList.toggle('show', sn===scr); });
   const inGame=(scr==='game');
-  if(!inGame){ hideFinishAsk(); $('#doneCard').classList.remove('show'); }
+  if(!inGame){ hideFinishAsk(); $('#doneCard').classList.remove('show'); if(typeof disarmReplay==='function') disarmReplay(); }
   document.body.classList.toggle('ingame', inGame);
   introMode=!inGame;
   if(scr==='hub') buildHub();
@@ -1124,7 +1125,7 @@ function updateProgressUI(){
     else if(pct>=92) showFinishAsk();                           // 92%↑ → 100% 채울지 물어보기
     else hideFinishAsk();
   }
-  $('#replayBtn').classList.toggle('show', !!active.done);       // 완료 유물엔 '다시 복원' 노출
+  if(document.body.classList.contains('ingame')) $('#replayBtn').classList.add('show');  // 진행 중·완료 모두 '처음부터' 노출
 }
 function completeArtifact(){
   if(!active||active.done)return;
@@ -1161,8 +1162,15 @@ function showFinishAsk(){
 function hideFinishAsk(){ $('#finishAsk').classList.remove('show'); }
 $('#askFinish').onclick=()=>{ Snd.tap(); completeArtifact(); };
 $('#askKeep').onclick=()=>{ if(active) active._askArmAt=Math.min(97.9, active.pct+1.2); hideFinishAsk(); toast('계속 닦아 보세요 · 98%면 자동 완성'); };
-$('#replayBtn').onclick=()=>{ const id=curArtifact; if(!active) return;   // 완료 유물 다시하기 → 더러운 상태로
-  clearDirt(id); active.reset(); $('#selBtn').classList.remove('complete'); $('#replayBtn').classList.remove('show');
+/* 처음부터 다시(진행 중·완료 모두) — 실수로 진행이 날아가지 않게 2단계 확인 */
+let _replayArmed=false,_replayT=0;
+function disarmReplay(){ _replayArmed=false; clearTimeout(_replayT); const b=$('#replayBtn'); if(b){ b.classList.remove('armed'); b.textContent='↻ 처음부터'; } }
+$('#replayBtn').onclick=()=>{ const id=curArtifact; if(!active) return;
+  const b=$('#replayBtn');
+  if(!_replayArmed){ _replayArmed=true; b.classList.add('armed'); b.textContent='한 번 더 · 처음부터';
+    clearTimeout(_replayT); _replayT=setTimeout(disarmReplay,3000); return; }
+  disarmReplay();
+  clearDirt(id); active.reset(); $('#selBtn').classList.remove('complete');
   camTheta=0.5;camPhi=1.12;camRTarget=3.5;camTargetGoal.set(0,0.15,0); updateProgressUI(); toast('처음부터 다시 복원합니다'); };
 setInterval(()=>{
   if(!active)return;
