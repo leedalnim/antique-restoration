@@ -849,7 +849,7 @@ function loadArtifact(id, cb){
     const fit=a.fit||{}; obj.rotation.x=fit.rx||0;
     const box=new THREE.Box3().setFromObject(obj);
     const size=box.getSize(new THREE.Vector3()), ctr=box.getCenter(new THREE.Vector3());
-    const s=(fit.h||2.3)/size.y;
+    const s=(fit.h||2.3)/(fit.byMax?Math.max(size.x,size.y,size.z):size.y);   // byMax: 긴 유물은 최대 치수 기준으로 맞춰 화면에 다 보이게
     obj.position.set(obj.position.x-ctr.x, obj.position.y-ctr.y, obj.position.z-ctr.z);
     const group=new THREE.Group(); group.add(obj); group.scale.setScalar(s);
     group.position.y=(fit.y!==undefined?fit.y:0.15);
@@ -987,7 +987,7 @@ const ARTIFACTS=[
   {id:'dog', playable:true, name:'개모양 토우', era:'신라', material:'도기(土偶)', desig:'유물', source:SRC, short:'흙으로 빚은 신라의 개 토우. 소박한 손길이 정겹다.',
    blurb:'흙을 손으로 빚어 구운 신라의 개 모양 토우(土偶). 꾸밈없는 형태에 신라 사람들의 일상과 정서가 소박하게 담겨 있습니다.',
    assets:{glb:'dog.glb', c:'tex14/dog_C.webp', m:'tex14/dog_M.webp', n:'tex14/dog_N.webp', r:'tex14/dog_R.webp', ao:'tex14/dog_ao.webp'},
-   fit:{h:2.0,y:0.05,rx:0}},
+   fit:{h:1.35,y:0.05,rx:0,byMax:true}},
   {id:'jade', playable:false, name:'경옥제 향로', era:'신라', material:'경옥(硬玉)', desig:'유물', source:SRC, short:'단단한 옥을 깎아 만든 세 다리 향로.',
    blurb:'단단한 옥돌을 깎아 만든 향로. 둥근 몸통과 세 다리, 귀 손잡이, 보주형 꼭지를 갖춘 형태에 옥을 다루는 신라 장인의 솜씨가 담겼습니다.',
    assets:{glb:'art6.glb', c:'tex6/jade_C.webp', m:'tex6/jade_M.webp', r:'tex6/jade_R.webp', n:'tex6/jade_N.webp', ao:'tex6/art6_ao.webp'},
