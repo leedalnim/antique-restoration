@@ -905,6 +905,7 @@ const FULL_HELP = isTouch
  ? '아래 <span class="k">도구</span>(블로워·세척솔·면봉)로 유물을 <span class="k">문질러</span> 세척<br><span class="k">두 손가락</span> 또는 <span class="k">빈 곳 드래그</span> — 회전<br><span class="k">두 손가락 오므리기</span> — 확대<br><span class="k">두 번 탭</span> — 그 부분 확대·가운데<br><span class="k">👁</span> 남은 오염 · <span class="k">↻</span> 제자리로'
  : '<span class="k">도구</span> 선택 후 유물을 <span class="k">문질러</span> 세척<br><span class="k">빈 곳/우클릭 드래그</span> — 회전 · <span class="k">휠</span> — 확대<br><span class="k">더블클릭</span> — 그 부분 확대·가운데<br><span class="k">👁</span> 남은 오염 · <span class="k">↻</span> 제자리로';
 function setHint(){ $('#hint').innerHTML=HINTS[mode]; showHint(); }
+let _hintSeen=false; try{ _hintSeen=localStorage.getItem('arHintSeen')==='1'; }catch(e){}
 let hintTimer=0;
 function showHint(){ $('#hint').classList.add('show'); clearTimeout(hintTimer); hintTimer=setTimeout(()=>$('#hint').classList.remove('show'),4200); }
 function openHelp(){ $('#helpBody').innerHTML=FULL_HELP; $('#hint').classList.remove('show'); $('#helpPanel').classList.add('show'); }
@@ -984,7 +985,7 @@ const ARTIFACTS=[
    blurb:'경주 월정교를 지키던 돌사자. 둥근 얼굴과 다부진 몸집에 신라 석공의 익살과 솜씨가 함께 담겨 있습니다.',
    assets:{glb:'lion2.glb', c:'tex13/lion2_C.webp', m:'tex13/lion2_M.webp', n:'tex13/lion2_N.webp', r:'tex13/lion2_R.webp', ao:'tex13/lion2_ao.webp', seedAO:true},
    fit:{h:1.61,y:0.04,rx:0,byMax:true}},
-  {id:'dog', playable:true, name:'개모양 토우', era:'신라', material:'도기(土偶)', desig:'유물', source:SRC, short:'흙으로 빚은 신라의 개 토우. 소박한 손길이 정겹다.',
+  {id:'dog', playable:false, name:'개모양 토우', era:'신라', material:'도기(土偶)', desig:'유물', source:SRC, short:'흙으로 빚은 신라의 개 토우. 소박한 손길이 정겹다.',
    blurb:'흙을 손으로 빚어 구운 신라의 개 모양 토우(土偶). 꾸밈없는 형태에 신라 사람들의 일상과 정서가 소박하게 담겨 있습니다.',
    assets:{glb:'dog.glb', c:'tex14/dog_C.webp', m:'tex14/dog_M.webp', n:'tex14/dog_N.webp', r:'tex14/dog_R.webp', ao:'tex14/dog_ao.webp'},
    fit:{h:1.87,y:0.05,rx:0,byMax:true}},
@@ -1071,7 +1072,7 @@ function goto(scr){
   introMode=!inGame;
   if(scr==='hub') buildHub();
   if(scr==='codex') buildCodex();
-  if(inGame) setHint();
+  if(inGame && !_hintSeen){ setHint(); _hintSeen=true; try{ localStorage.setItem('arHintSeen','1'); }catch(e){} }   // 사용법 힌트는 첫 유물에서 한 번만(이후엔 도움말 버튼으로)
 }
 function buildHub(){
   const g=$('#hubGrid'); g.innerHTML='';
