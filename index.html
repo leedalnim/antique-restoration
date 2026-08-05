@@ -1077,12 +1077,10 @@ function goto(scr){
 function buildHub(){
   const g=$('#hubGrid'); g.innerHTML='';
   for(const a of ARTIFACTS){
+    if(!a.playable) continue;                                    // 비공개 유물은 목록에 아예 표시 안 함('발굴 예정' 박스 제거)
     const c=document.createElement('div');
     const isP=a.playable, unl=isP&&unlocked[a.id], done=isP&&restored[a.id];
-    if(!isP){
-      c.className='acard locked';
-      c.innerHTML='<div class="thumb">'+LOCK_SVG+'</div><div class="cap"><div class="nm">발굴 예정</div><div class="bd lock">준비 중</div></div>';
-    }else if(!unl){
+    if(!unl){
       c.className='acard locked';
       c.innerHTML='<div class="thumb">'+LOCK_SVG+'</div><div class="cap"><div class="nm">'+a.name+'</div><div class="bd lock">잠김</div></div>';
     }else{
